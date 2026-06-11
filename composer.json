@@ -15,5 +15,10 @@
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "scripts": {
+        "build:production": "php build.php build:production",
+        "build:dev": "php build.php build:dev",
+        "build:clean": "php build.php clean"
     }
 }
