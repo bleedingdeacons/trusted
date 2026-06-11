@@ -14,6 +14,8 @@
     <include_path>
       <path value="$PROJECT_DIR$/../unity/vendor/composer" />
       <path value="$PROJECT_DIR$/../unity/vendor/psr/container" />
+      <path value="$PROJECT_DIR$/vendor/psr/container" />
+      <path value="$PROJECT_DIR$/vendor/composer" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.1">
@@ -25,6 +27,7 @@
   <component name="PhpUnit">
     <phpunit_settings>
       <PhpUnitSettings configuration_file_path="$PROJECT_DIR$/../unity/phpunit.xml" custom_loader_path="$PROJECT_DIR$/../unity/vendor/autoload.php" use_configuration_file="true" />
+      <PhpUnitSettings custom_loader_path="$PROJECT_DIR$/vendor/autoload.php" />
     </phpunit_settings>
   </component>
   <component name="PsalmOptionsConfiguration">

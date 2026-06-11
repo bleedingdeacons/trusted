@@ -2,6 +2,12 @@
 
 A 7-day telephone shift **rota manager** for WordPress.
 
+**Version:** 1.3.1
+**Requires:** WordPress 6.0+ · PHP 8.1+
+**License:** MIT (Modified)
+
+---
+
 - Build reusable **weekly shift templates** (ACF custom post type, free fields only).
 - **Apply** a template to any week to generate the rota.
 - A **calendar view** in the admin for editing slots and assigning members.
