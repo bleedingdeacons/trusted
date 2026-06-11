@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name:       Trusted
- * Description:        A 7-day telephone shift rota manager built on the Unity plugin. Build weekly shift templates, apply them to a week, and assign Unity telephone responders from a calendar view. Uses custom database tables behind an interface/factory/repository layer registered in Unity's container.
+ * Description:       A 7-day telephone shift rota manager built on the Unity plugin. Build weekly shift templates, apply them to a week, and assign Unity telephone responders from a calendar view. Uses custom database tables behind an interface/factory/repository layer registered in Unity's container.
  * Version:           1.3.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
