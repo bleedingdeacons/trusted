@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/trusted.iml" filepath="$PROJECT_DIR$/.idea/trusted.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../tsml-for-unity/.idea/tsml-for-unity.iml" filepath="$PROJECT_DIR$/../tsml-for-unity/.idea/tsml-for-unity.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../unity/.idea/unity.iml" filepath="$PROJECT_DIR$/../unity/.idea/unity.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,19 @@
+{
+    "name": "trusted/trusted",
+    "description": "Trusted — a 7-day telephone shift rota manager for WordPress, built on the Unity plugin.",
+    "type": "wordpress-plugin",
+    "license": "MIT (Modified)",
+    "require": {
+        "php": ">=8.1",
+        "psr/container": "^1.1 || ^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Trusted\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

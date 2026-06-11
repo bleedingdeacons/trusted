@@ -1,0 +1,335 @@
+.trusted-wrap .trusted-loading {
+    color: #646970;
+    font-style: italic;
+}
+
+/* Spinner shown next to every "Loading rota…" message (server mount and the
+   JS re-render both use .trusted-loading, so this covers both). */
+.trusted-wrap .trusted-loading::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border: 2px solid #c3c4c7;
+    border-top-color: #2271b1;
+    border-radius: 50%;
+    animation: trusted-spin 0.7s linear infinite;
+}
+
+@keyframes trusted-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trusted-wrap .trusted-loading::before {
+        animation-duration: 2s;
+    }
+}
+
+.trusted-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.trusted-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.trusted-week-label {
+    margin-left: 8px;
+    color: #1d2327;
+}
+
+.trusted-template-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.trusted-replace-label {
+    font-size: 12px;
+    color: #50575e;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Always 7 columns — one per day of the week. Stretch so every day column
+   in a row matches the tallest, keeping the days aligned regardless of how
+   many shifts each holds. */
+.trusted-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+}
+
+@media (max-width: 1200px) {
+    .trusted-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 782px) {
+    .trusted-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.trusted-day {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+}
+
+.trusted-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 10px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+    border-radius: 4px 4px 0 0;
+}
+
+.trusted-day-name {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.trusted-day-date {
+    font-size: 12px;
+    color: #646970;
+}
+
+.trusted-slots {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.trusted-slot {
+    border: 1px solid #dcdcde;
+    border-left: 3px solid #2271b1;
+    border-radius: 3px;
+    padding: 6px 8px;
+    background: #fff;
+}
+
+.trusted-slot-new {
+    border-left-color: #00a32a;
+    background: #f6fbf7;
+}
+
+.trusted-slot-time {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.trusted-slot-label {
+    font-size: 12px;
+    color: #50575e;
+    margin: 2px 0 4px;
+}
+
+.trusted-slot-delete,
+.trusted-assignee-remove {
+    border: 0;
+    background: transparent;
+    color: #b32d2e;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+.trusted-slot-delete:hover,
+.trusted-assignee-remove:hover {
+    color: #8a1f1f;
+}
+
+.trusted-assignees {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 6px 0;
+}
+
+.trusted-assignee {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+    background: #f0f6fc;
+    border-radius: 3px;
+    padding: 4px 6px;
+}
+
+.trusted-assignee-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.trusted-assignee-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.trusted-assignee-meta {
+    font-size: 11px;
+    color: #646970;
+    word-break: break-word;
+}
+
+.trusted-assign-select,
+.trusted-template-select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 13px;
+}
+
+.trusted-assign-select {
+    min-height: 32px;
+    padding: 4px 6px;
+}
+
+.trusted-assign {
+    margin-top: 6px;
+}
+
+.trusted-assign-picker {
+    padding: 8px;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.trusted-assign-actions {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Full-size, easy-to-hit buttons inside the assign popup, one per row. */
+.trusted-assign-actions .button {
+    width: 100%;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    line-height: 32px;
+    text-align: center;
+}
+
+.trusted-assign-btn {
+    width: 100%;
+}
+
+.trusted-template-select {
+    width: auto;
+    min-width: 180px;
+}
+
+.trusted-add-slot {
+    margin: 0 8px 8px;
+    text-align: left;
+    color: #2271b1;
+}
+
+.trusted-new-times {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+.trusted-time-input { width: 90px; }
+
+.trusted-label-input {
+    width: 100%;
+    margin: 4px 0;
+}
+
+.trusted-new-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+/* --- Bulk assign (one member → many shifts) ----------------------------- */
+
+.trusted-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    background: #f0f6fc;
+    border: 1px solid #2271b1;
+    border-radius: 4px;
+}
+
+.trusted-bulk-hint {
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.trusted-bulk-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.trusted-bulk-member {
+    width: auto;
+    min-width: 200px;
+}
+
+.trusted-bulk-count {
+    font-size: 13px;
+    color: #50575e;
+    min-width: 110px;
+}
+
+/* Empty, selectable shift cards in bulk mode. */
+.trusted-slot-selectable {
+    cursor: pointer;
+}
+
+.trusted-slot-selectable:hover {
+    border-left-color: #135e96;
+    background: #f6f7f7;
+}
+
+.trusted-bulk-check {
+    margin-right: 6px;
+}
+
+/* Already-filled shifts are shown for context but can't be selected. */
+.trusted-slot-filled {
+    opacity: 0.55;
+}
