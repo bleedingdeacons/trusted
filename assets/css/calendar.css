@@ -150,7 +150,7 @@
     border-left-color: #dba617;
 }
 
-/* Uncovered time between two consecutive shifts on a day. */
+/* Uncovered time on a day. Double-click to add a shift covering the gap. */
 .trusted-gap {
     text-align: center;
     font-size: 11px;
@@ -160,6 +160,13 @@
     border: 1px dashed #dba617;
     border-radius: 3px;
     padding: 3px 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.trusted-gap:hover {
+    background: #faf3d0;
+    border-color: #b88c00;
 }
 
 .trusted-slot-time {
@@ -344,6 +351,16 @@
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
+}
+
+/* Optional member field in the add-shift form: label stacked above the select. */
+.trusted-new-member {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #50575e;
 }
 
 .trusted-label-input {

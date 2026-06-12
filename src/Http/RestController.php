@@ -527,13 +527,19 @@ final class RestController
 
     private function sanitiseTime(mixed $value): ?string
     {
-        // Shifts work to the minute. Accept an optional seconds component (some
-        // browsers/clients send "HH:MM:SS") but drop it, always returning "H:i".
-        if (! is_string($value) || ! preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)) {
+        if (! is_string($value)) {
             return null;
         }
 
-        return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
+        // 24:00 is allowed as an end-of-day marker. Otherwise accept 00:00–23:59,
+        // working to the minute. An optional seconds component (some clients send
+        // "HH:MM:SS") is accepted but dropped, always returning "H:i".
+        if (preg_match('/^(24):(00)(?::00)?$/', $value, $m)
+            || preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)) {
+            return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
+        }
+
+        return null;
     }
 
     private function mondayOf(string $date): string

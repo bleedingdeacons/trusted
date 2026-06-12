@@ -37,7 +37,7 @@ final class Assets
             'startDow'  => (int) get_option('start_of_week', 1), // 0 = Sun, 1 = Mon
             'i18n'      => [
                 'assign'        => __('Assign', 'trusted'),
-                'selectMember'  => __('— Select a member —', 'trusted'),
+                'selectMember'  => __('Select Member', 'trusted'),
                 'addShift'      => __('Add Shift', 'trusted'),
                 'applyTemplate' => __('Apply template', 'trusted'),
                 'replace'       => __('Replace existing slots this week', 'trusted'),
@@ -56,6 +56,7 @@ final class Assets
                 'unassigned'    => __('Unassigned', 'trusted'),
                 /* translators: shown between two shifts with uncovered time, e.g. "Gap 13:00–14:00". */
                 'gap'           => __('Gap', 'trusted'),
+                'gapAddHint'    => __('Double-click to add a shift for this gap', 'trusted'),
                 'saveAsTemplate'       => __('Save week as template', 'trusted'),
                 'templateName'         => __('Template name', 'trusted'),
                 'includeMembers'       => __('Include assigned members', 'trusted'),
@@ -68,10 +69,12 @@ final class Assets
                 'confirmClearAssignments' => __('Remove every member assignment for this week? The shifts will stay.', 'trusted'),
                 'confirmDelete' => __('Delete this shift slot and its assignments?', 'trusted'),
                 'addingShift'   => __('Adding Shift', 'trusted'),
+                'memberOptional' => __('Member (optional)', 'trusted'),
                 'newSlotStart'  => __('Start', 'trusted'),
                 'newSlotEnd'    => __('End', 'trusted'),
                 'newSlotLabel'  => __('Shift name', 'trusted'),
                 'nameRequired'  => __('Please enter a shift name.', 'trusted'),
+                'invalidTime'   => __('Enter times as HH:MM, between 00:00 and 24:00.', 'trusted'),
                 'save'          => __('Save', 'trusted'),
                 'cancel'        => __('Cancel', 'trusted'),
             ],
