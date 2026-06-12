@@ -111,7 +111,7 @@
         Promise.all([api('/week/' + state.weekStart), loadMembers(), loadTemplates()])
             .then(function (results) {
                 clear(root);
-                root.appendChild(buildToolbar());
+                root.appendChild(buildToolbar(results[0]));
                 if (state.bulk) { root.appendChild(buildBulkBar()); }
                 var grid = el('div', { class: 'trusted-grid' });
                 root.appendChild(grid);
@@ -124,7 +124,19 @@
             });
     }
 
-    function buildToolbar() {
+    // True when any day in the week has at least one shift slot.
+    function weekHasSlots(week) {
+        return (week.days || []).some(function (d) { return (d.slots || []).length > 0; });
+    }
+
+    // True when any slot in the week has a member assigned.
+    function weekHasAssignments(week) {
+        return (week.days || []).some(function (d) {
+            return (d.slots || []).some(function (s) { return (s.assignments || []).length > 0; });
+        });
+    }
+
+    function buildToolbar(week) {
         var label = state.weekStart + ' – ' + addDays(state.weekStart, 6);
 
         var templateSelect = el('select', { class: 'trusted-template-select' });
@@ -174,6 +186,41 @@
             onclick: function () { openSaveTemplate(toolbar); }
         });
 
+        // Two complementary week-level actions, shown only outside bulk mode and
+        // never together: "Clear week" deletes the shifts while the week is
+        // unstarted (no assignments); "Delete week's assignments" frees every
+        // slot but keeps the shifts, and so only appears once someone is assigned.
+        var clearBtn = null;
+        var clearAssignmentsBtn = null;
+
+        if (!state.bulk && weekHasSlots(week) && !weekHasAssignments(week)) {
+            clearBtn = el('button', {
+                class: 'button trusted-clear-week',
+                text: i18n.clearWeek || 'Clear week',
+                onclick: function () {
+                    if (!window.confirm(i18n.confirmClearWeek || 'Delete all shifts for this week?')) { return; }
+                    clearBtn.disabled = true;
+                    api('/week/' + state.weekStart, { method: 'DELETE' })
+                        .then(function () { render(); })
+                        .catch(function (e) { clearBtn.disabled = false; window.alert(e.message); });
+                }
+            });
+        }
+
+        if (!state.bulk && weekHasAssignments(week)) {
+            clearAssignmentsBtn = el('button', {
+                class: 'button trusted-clear-assignments',
+                text: i18n.clearAssignments || 'Delete week\'s assignments',
+                onclick: function () {
+                    if (!window.confirm(i18n.confirmClearAssignments || 'Remove every member assignment for this week?')) { return; }
+                    clearAssignmentsBtn.disabled = true;
+                    api('/week/' + state.weekStart + '/assignments', { method: 'DELETE' })
+                        .then(function () { render(); })
+                        .catch(function (e) { clearAssignmentsBtn.disabled = false; window.alert(e.message); });
+                }
+            });
+        }
+
         toolbar = el('div', { class: 'trusted-toolbar' }, [
             el('div', { class: 'trusted-nav' }, [
                 el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
@@ -188,7 +235,9 @@
                 state.bulk ? null : saveTemplateBtn,
                 templateSelect,
                 el('label', { class: 'trusted-replace-label' }, [replaceBox, ' ' + (i18n.replace || 'Replace existing slots this week')]),
-                applyBtn
+                applyBtn,
+                clearBtn,
+                clearAssignmentsBtn
             ])
         ]);
 
@@ -255,6 +304,89 @@
         });
     }
 
+    function toMinutes(hhmm) {
+        var parts = (hhmm || '').split(':');
+        return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+    }
+
+    function minutesToHHMM(min) {
+        if (min >= 1440) { return '24:00'; } // end-of-day boundary
+        var h = Math.floor(min / 60), m = min % 60;
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    }
+
+    // Uncovered stretches across the whole day, treated as 00:00 → 24:00. Each
+    // shift covers [start, end); a shift whose end is at or before its start
+    // crosses midnight and so covers through to the end of this day. Overlaps are
+    // absorbed (never flagged) by advancing a cursor. Returns gaps as
+    // { start, end, before } where `before` is the insert position — the index of
+    // the following shift, or shifts.length for an end-of-day gap. A day with no
+    // shifts yields a single 00:00–24:00 gap.
+    function dayGaps(shifts) {
+        var gaps = [];
+        var cursor = 0;
+
+        shifts.forEach(function (shift, i) {
+            var s = toMinutes(shift.start);
+            var e = toMinutes(shift.end);
+            if (e <= s) { e = 1440; } // crosses midnight → covers to end of day
+
+            if (s > cursor) {
+                gaps.push({ start: minutesToHHMM(cursor), end: minutesToHHMM(s), before: i });
+            }
+            if (e > cursor) { cursor = e; }
+        });
+
+        if (cursor < 1440) {
+            gaps.push({ start: minutesToHHMM(cursor), end: minutesToHHMM(1440), before: shifts.length });
+        }
+
+        return gaps;
+    }
+
+    // Map dayGaps() output by insert position for easy lookup while rendering.
+    function gapsByPosition(shifts) {
+        var byPos = {};
+        dayGaps(shifts).forEach(function (g) { byPos[g.before] = g; });
+        return byPos;
+    }
+
+    function buildGapMarker(gap) {
+        return el('div', {
+            class: 'trusted-gap',
+            text: (i18n.gap || 'Gap') + ' ' + gap.start + '–' + gap.end
+        });
+    }
+
+    // Rebuild the gap markers in a day's .trusted-slots container from the shift
+    // cards currently in it (DOM order). Used after a shift is removed so gaps
+    // merge/disappear correctly without a full re-render.
+    function refreshGaps(slotsNode) {
+        var existing = slotsNode.querySelectorAll('.trusted-gap');
+        Array.prototype.forEach.call(existing, function (g) { g.parentNode.removeChild(g); });
+
+        // Real shift cards carry data-start/data-end; the in-progress add form
+        // and other children do not, so they're skipped.
+        var cards = Array.prototype.filter.call(slotsNode.children, function (c) {
+            return c.classList.contains('trusted-slot') && c.hasAttribute('data-start');
+        });
+        var shifts = cards.map(function (c) {
+            return { start: c.getAttribute('data-start'), end: c.getAttribute('data-end') };
+        });
+
+        var gapAt = gapsByPosition(shifts);
+        cards.forEach(function (card, i) {
+            if (gapAt[i]) { slotsNode.insertBefore(buildGapMarker(gapAt[i]), card); }
+        });
+
+        var trailing = gapAt[cards.length];
+        if (trailing) {
+            var marker = buildGapMarker(trailing);
+            if (cards.length) { slotsNode.insertBefore(marker, cards[cards.length - 1].nextSibling); }
+            else { slotsNode.appendChild(marker); }
+        }
+    }
+
     function buildDayColumn(day, idx) {
         var col = el('div', { class: 'trusted-day' });
         col.appendChild(el('div', { class: 'trusted-day-head' }, [
@@ -263,9 +395,16 @@
         ]));
 
         var slots = el('div', { class: 'trusted-slots' });
-        (day.slots || []).forEach(function (slot) {
+        var daySlots = day.slots || [];
+
+        // Uncovered time across the full 00:00–24:00 day: before the first shift,
+        // between shifts, and after the last shift.
+        var gapAt = gapsByPosition(daySlots);
+        daySlots.forEach(function (slot, i) {
+            if (gapAt[i]) { slots.appendChild(buildGapMarker(gapAt[i])); }
             slots.appendChild(state.bulk ? buildSelectableSlotCard(slot) : buildSlotCard(slot));
         });
+        if (gapAt[daySlots.length]) { slots.appendChild(buildGapMarker(gapAt[daySlots.length])); }
         col.appendChild(slots);
 
         // Adding shifts is disabled while bulk-assigning, to keep the focus on
@@ -282,14 +421,20 @@
     }
 
     function buildSlotCard(slot) {
-        var card = el('div', { class: 'trusted-slot' });
+        // The times ride along on the card so gaps can be recomputed from the
+        // DOM (e.g. after a delete) without re-fetching the week.
+        var card = el('div', { class: 'trusted-slot', 'data-start': slot.start, 'data-end': slot.end });
 
         var deleteBtn = el('button', {
             class: 'trusted-slot-delete', title: i18n.remove || 'Remove', text: '×',
             onclick: function () {
                 if (!window.confirm(i18n.confirmDelete || 'Delete this slot?')) { return; }
                 api('/rota/' + slot.id, { method: 'DELETE' }).then(function () {
-                    card.parentNode.removeChild(card);
+                    var slotsNode = card.parentNode;
+                    if (slotsNode) {
+                        slotsNode.removeChild(card);
+                        refreshGaps(slotsNode); // the removed shift may open or close a gap
+                    }
                 });
             }
         });
@@ -321,6 +466,10 @@
 
             var filled = !!(assignments && assignments.length);
             deleteBtn.style.display = filled ? 'none' : '';
+
+            // Highlight a shift that still needs cover, so unassigned slots are
+            // scannable at a glance. Toggled here so it tracks assign/remove.
+            card.classList.toggle('trusted-slot-unassigned', !filled);
 
             (assignments || []).forEach(function (a) {
                 assignees.appendChild(buildAssignee(a, function () { paint([]); }));
@@ -566,8 +715,9 @@
     }
 
     function showAddSlot(slotsNode, date) {
-        var start = el('input', { type: 'time', class: 'trusted-time-input', value: '09:00' });
-        var end = el('input', { type: 'time', class: 'trusted-time-input', value: '17:00' });
+        // step=60 keeps the picker to hours and minutes (no seconds field).
+        var start = el('input', { type: 'time', step: '60', class: 'trusted-time-input', value: '09:00' });
+        var end = el('input', { type: 'time', step: '60', class: 'trusted-time-input', value: '17:00' });
         var label = el('input', { type: 'text', class: 'trusted-label-input', required: 'required', placeholder: i18n.newSlotLabel || 'Shift name' });
 
         var form = el('div', { class: 'trusted-slot trusted-slot-new' }, [

@@ -68,12 +68,9 @@ final class TemplateParser
         $label  = $parts[0] ?? '';
         $member = $parts[1] ?? '';
 
-        // A shift always has a name. If a template line omits one, fall back to
-        // its time range rather than producing an unnamed slot.
-        if ($label === '') {
-            $label = $start . '–' . $end;
-        }
-
+        // The label may be empty here when a line omits its name. We deliberately
+        // do NOT fill in a fallback: a name is required, so TemplateValidator
+        // rejects nameless lines at save time and callers can tell one was missing.
         return new Shift($start, $end, $label, $member);
     }
 

@@ -48,9 +48,20 @@ final class TemplateValidator
 
     private function validateDay(string $fieldKey, string $raw): void
     {
-        $seen = [];
+        $seen          = [];
+        $nameReported  = false;
 
         foreach ($this->parser->parse($raw) as $shift) {
+            // Every shift must be named. Report a missing name once per day so
+            // the save is blocked without repeating the message for each line.
+            if (! $nameReported && $shift->label() === '') {
+                acf_add_validation_error(
+                    'acf[' . $fieldKey . ']',
+                    __('Every shift needs a name: HH:MM-HH:MM | Name.', 'trusted')
+                );
+                $nameReported = true;
+            }
+
             $member = $shift->member();
 
             if ($member === '' || isset($seen[strtolower($member)])) {

@@ -144,6 +144,24 @@
     background: #f6fbf7;
 }
 
+/* A shift with nobody assigned yet: amber accent so slots needing cover are
+   easy to scan. Toggled live as members are assigned/removed. */
+.trusted-slot-unassigned {
+    border-left-color: #dba617;
+}
+
+/* Uncovered time between two consecutive shifts on a day. */
+.trusted-gap {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a6d00;
+    background: #fcf8e3;
+    border: 1px dashed #dba617;
+    border-radius: 3px;
+    padding: 3px 6px;
+}
+
 .trusted-slot-time {
     display: flex;
     justify-content: space-between;
@@ -284,6 +302,28 @@
     display: flex;
     gap: 6px;
     margin-top: 4px;
+}
+
+/* Destructive week-level buttons (clear shifts / clear assignments): solid red. */
+.trusted-clear-week,
+.trusted-clear-week:hover,
+.trusted-clear-week:focus,
+.trusted-clear-assignments,
+.trusted-clear-assignments:hover,
+.trusted-clear-assignments:focus {
+    background: #b32d2e;
+    border-color: #b32d2e;
+    color: #fff;
+    text-shadow: none;
+}
+
+.trusted-clear-week:hover,
+.trusted-clear-week:focus,
+.trusted-clear-assignments:hover,
+.trusted-clear-assignments:focus {
+    background: #8a1f1f;
+    border-color: #8a1f1f;
+    box-shadow: none;
 }
 
 /* --- Save week as template ---------------------------------------------- */

@@ -55,10 +55,20 @@ final class TemplateFields
             return;
         }
 
-        $instructions = __(
-            'One shift per line: <code>HH:MM-HH:MM | Name | Member</code>. Give every shift a name; if you omit it, the time range is used. The third field is optional — name a member by their anonymous name to pre-assign them when the template is applied. The member must exist and be a telephone responder, or the template won\'t save.',
-            'trusted'
-        );
+        // Short per-field hint; the full guide lives in the help message at the
+        // top of the group (added as the first field below).
+        $instructions = __('One shift per line.', 'trusted');
+
+        // Rich help block shown once at the top of the template editor.
+        $help = '<p>' . __('Add one shift per line in each day, using:', 'trusted')
+            . ' <code>HH:MM-HH:MM | Name | Member</code></p>'
+            . '<ul style="list-style: disc; margin-left: 1.4em;">'
+            . '<li>' . __('<strong>Times</strong> are 24-hour, e.g. <code>09:00-17:00</code>.', 'trusted') . '</li>'
+            . '<li>' . __('<strong>Name</strong> is required — a line without one won\'t save.', 'trusted') . '</li>'
+            . '<li>' . __('<strong>Member</strong> is optional: their anonymous name. They must be an existing telephone responder or the template won\'t save, and they\'re pre-assigned automatically when the template is applied.', 'trusted') . '</li>'
+            . '</ul>'
+            . '<p>' . __('Example:', 'trusted') . '</p>'
+            . '<pre style="margin: 0;">09:00-13:00 | Reception | John D' . "\n" . '13:00-17:00 | Reception</pre>';
 
         $dayLabels = [
             'trusted_shifts_mon' => __('Monday', 'trusted'),
@@ -70,7 +80,17 @@ final class TemplateFields
             'trusted_shifts_sun' => __('Sunday', 'trusted'),
         ];
 
-        $fields = [];
+        $fields = [
+            [
+                'key'       => 'field_trusted_template_help',
+                'label'     => __('How to fill this in', 'trusted'),
+                'name'      => '', // Message fields store nothing.
+                'type'      => 'message',
+                'message'   => $help,
+                'new_lines' => '', // $help is already HTML.
+                'esc_html'  => 0,  // Render the HTML rather than escaping it.
+            ],
+        ];
 
         foreach ($dayLabels as $name => $label) {
             $fields[] = [
@@ -81,7 +101,6 @@ final class TemplateFields
                 'instructions' => $instructions,
                 'rows'         => 4,
                 'new_lines'    => '', // Keep raw newlines; we parse them ourselves.
-                'placeholder'  => "09:00-13:00 | Reception | John D\n13:00-17:00 | Reception",
             ];
         }
 
@@ -104,7 +123,7 @@ final class TemplateFields
             'label_placement'       => 'top',
             'hide_on_screen'        => ['the_content'],
             'active'                => true,
-            'description'           => __('Defines the shifts for each day of a week.', 'trusted'),
+            'description'           => __('A reusable weekly shift pattern. Apply it to a week from the Trusted calendar; any members you name are checked when you save and pre-assigned on apply.', 'trusted'),
         ]);
     }
 }

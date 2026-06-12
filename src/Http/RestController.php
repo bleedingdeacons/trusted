@@ -38,8 +38,27 @@ final class RestController
     public function registerRoutes(): void
     {
         register_rest_route(self::NAMESPACE, '/week/(?P<start>\d{4}-\d{2}-\d{2})', [
-            'methods'             => WP_REST_Server::READABLE,
-            'callback'            => [$this, 'getWeek'],
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [$this, 'getWeek'],
+                'permission_callback' => [$this, 'can'],
+                'args'                => [
+                    'start' => ['validate_callback' => [$this, 'isDate']],
+                ],
+            ],
+            [
+                'methods'             => WP_REST_Server::DELETABLE,
+                'callback'            => [$this, 'clearWeek'],
+                'permission_callback' => [$this, 'can'],
+                'args'                => [
+                    'start' => ['validate_callback' => [$this, 'isDate']],
+                ],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/week/(?P<start>\d{4}-\d{2}-\d{2})/assignments', [
+            'methods'             => WP_REST_Server::DELETABLE,
+            'callback'            => [$this, 'clearWeekAssignments'],
             'permission_callback' => [$this, 'can'],
             'args'                => [
                 'start' => ['validate_callback' => [$this, 'isDate']],
@@ -152,6 +171,53 @@ final class RestController
             'week_start' => $weekStart,
             'days'       => array_values($days),
         ]);
+    }
+
+    /**
+     * Delete every shift in the displayed week — but only while the week is
+     * unstarted (no member assigned to any slot). A week that already has
+     * assignments is refused (409); the assignments must be removed first. This
+     * mirrors the calendar, which only offers "Clear week" when nothing is
+     * assigned, and guards the same rule server-side.
+     */
+    public function clearWeek(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $weekStart = $this->mondayOf((string) $request['start']);
+        $slots     = $this->rota->findForWeek($weekStart);
+
+        foreach ($slots as $slot) {
+            if ($slot->assignments() !== []) {
+                return new WP_Error(
+                    'trusted_week_not_empty',
+                    __('This week has assigned shifts. Remove the assignments before clearing the week.', 'trusted'),
+                    ['status' => 409]
+                );
+            }
+        }
+
+        $deleted = $this->rota->deleteWeek($weekStart);
+
+        return new WP_REST_Response(['deleted' => $deleted, 'week_start' => $weekStart]);
+    }
+
+    /**
+     * Remove every member assignment in the displayed week, leaving the shifts
+     * themselves in place. Frees the whole week for re-assignment in one go.
+     */
+    public function clearWeekAssignments(WP_REST_Request $request): WP_REST_Response
+    {
+        $weekStart = $this->mondayOf((string) $request['start']);
+        $deleted   = 0;
+
+        foreach ($this->rota->findForWeek($weekStart) as $slot) {
+            foreach ($slot->assignments() as $assignment) {
+                if ($assignment->id() !== null && $this->assignments->delete((int) $assignment->id())) {
+                    $deleted++;
+                }
+            }
+        }
+
+        return new WP_REST_Response(['deleted' => $deleted, 'week_start' => $weekStart]);
     }
 
     public function createSlot(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -461,13 +527,13 @@ final class RestController
 
     private function sanitiseTime(mixed $value): ?string
     {
-        if (! is_string($value) || ! preg_match('/^([01]?\d|2[0-3]):[0-5]\d$/', $value)) {
+        // Shifts work to the minute. Accept an optional seconds component (some
+        // browsers/clients send "HH:MM:SS") but drop it, always returning "H:i".
+        if (! is_string($value) || ! preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)) {
             return null;
         }
 
-        [$h, $m] = explode(':', $value);
-
-        return str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . $m;
+        return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
     }
 
     private function mondayOf(string $date): string

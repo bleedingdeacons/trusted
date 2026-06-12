@@ -114,11 +114,18 @@ final class TemplateApplicator
                     continue;
                 }
 
+                // Names are required and enforced at save time; this fallback
+                // only guards a legacy template saved before that rule, so it
+                // never writes a nameless slot.
+                $label = $shift->label() !== ''
+                    ? $shift->label()
+                    : $shift->startTime() . '–' . $shift->endTime();
+
                 $slot = $this->rotaFactory->create(
                     slotDate: $date,
                     startTime: $shift->startTime(),
                     endTime: $shift->endTime(),
-                    label: $shift->label(),
+                    label: $label,
                     templateId: $templateId,
                 );
 

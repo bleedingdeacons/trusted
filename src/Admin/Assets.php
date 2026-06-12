@@ -54,12 +54,18 @@ final class Assets
                 'bulkSkipped'   => __('%d shift(s) were already filled and left unchanged.', 'trusted'),
                 'noTemplates'   => __('No templates yet', 'trusted'),
                 'unassigned'    => __('Unassigned', 'trusted'),
+                /* translators: shown between two shifts with uncovered time, e.g. "Gap 13:00–14:00". */
+                'gap'           => __('Gap', 'trusted'),
                 'saveAsTemplate'       => __('Save week as template', 'trusted'),
                 'templateName'         => __('Template name', 'trusted'),
                 'includeMembers'       => __('Include assigned members', 'trusted'),
                 'templateNameRequired' => __('Please enter a template name.', 'trusted'),
                 /* translators: %s: the new template's name. */
                 'templateSaved'        => __('Saved as template "%s".', 'trusted'),
+                'clearWeek'            => __('Clear week', 'trusted'),
+                'confirmClearWeek'     => __('Delete all shifts for this week? This cannot be undone.', 'trusted'),
+                'clearAssignments'        => __('Delete week\'s assignments', 'trusted'),
+                'confirmClearAssignments' => __('Remove every member assignment for this week? The shifts will stay.', 'trusted'),
                 'confirmDelete' => __('Delete this shift slot and its assignments?', 'trusted'),
                 'newSlotStart'  => __('Start (HH:MM)', 'trusted'),
                 'newSlotEnd'    => __('End (HH:MM)', 'trusted'),
