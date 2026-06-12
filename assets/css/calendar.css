@@ -278,20 +278,73 @@
     min-width: 180px;
 }
 
-.trusted-add-slot {
+/* "Add Shift" button under the day header. Inset to line up with the slot cards
+   below so its dashed border doesn't clash with the column/header borders.
+   A dashed outline reads as an "add" affordance and fills in on hover.
+   Selectors are scoped + element-qualified so they outrank WordPress's
+   `.wp-core-ui .button` admin styles, which would otherwise win on specificity. */
+.trusted-wrap button.trusted-add-slot {
+    display: block;
+    box-sizing: border-box;
+    width: auto;
+    height: auto;
     margin: 0 8px 8px;
-    text-align: left;
+    padding: 7px 10px;
+    text-align: center;
+    font-weight: 600;
+    line-height: 1.2;
     color: #2271b1;
+    background: #f6f9fc;
+    border: 1px dashed #6f9fcf;
+    border-radius: 4px;
+    box-shadow: none;
+    text-shadow: none;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.trusted-wrap button.trusted-add-slot::before {
+    content: "+";
+    margin-right: 6px;
+    font-weight: 700;
+}
+
+.trusted-wrap button.trusted-add-slot:hover,
+.trusted-wrap button.trusted-add-slot:focus {
+    color: #fff;
+    background: #2271b1;
+    border-style: solid;
+    border-color: #2271b1;
+    box-shadow: none;
+}
+
+.trusted-new-title {
+    font-weight: 700;
+    font-size: 12px;
+    color: #1d2327;
+    margin-bottom: 4px;
 }
 
 .trusted-new-times {
     display: flex;
-    align-items: center;
-    gap: 4px;
+    flex-wrap: wrap; /* let the start/end fields wrap in narrow columns */
+    gap: 8px;
     font-size: 12px;
 }
 
-.trusted-time-input { width: 90px; }
+/* Label stacked above its time input; the two fields share the row width. */
+.trusted-new-time {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 100px;
+    color: #50575e;
+}
+
+.trusted-time-input {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
 
 .trusted-label-input {
     width: 100%;
@@ -300,8 +353,19 @@
 
 .trusted-new-actions {
     display: flex;
-    gap: 6px;
-    margin-top: 4px;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* Larger, full-width Save/Cancel in the add-shift form. Scoped + element-
+   qualified to outrank WordPress's `.wp-core-ui .button-small`. */
+.trusted-wrap .trusted-new-actions button.button {
+    flex: 1;
+    height: auto;
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 /* Destructive week-level buttons (clear shifts / clear assignments): solid red. */

@@ -407,14 +407,15 @@
         if (gapAt[daySlots.length]) { slots.appendChild(buildGapMarker(gapAt[daySlots.length])); }
         col.appendChild(slots);
 
-        // Adding shifts is disabled while bulk-assigning, to keep the focus on
-        // ticking existing slots.
+        // Add-shift sits at the base of the column, below the shifts. Hidden
+        // while bulk-assigning, to keep the focus on ticking slots.
         if (!state.bulk) {
-            col.appendChild(el('button', {
-                class: 'button-link trusted-add-slot',
-                text: i18n.addShift || '+ Add shift',
-                onclick: function () { showAddSlot(slots, day.date); }
-            }));
+            var addBtn = el('button', {
+                class: 'button trusted-add-slot',
+                text: i18n.addShift || 'Add Shift',
+                onclick: function () { showAddSlot(slots, day.date, addBtn); }
+            });
+            col.appendChild(addBtn);
         }
 
         return col;
@@ -714,15 +715,27 @@
         return wrap;
     }
 
-    function showAddSlot(slotsNode, date) {
+    function showAddSlot(slotsNode, date, addBtn) {
+        // Only one add form per day at a time: disable the day's Add Shift button
+        // while the form is open, and restore it when the form closes.
+        if (addBtn) { addBtn.disabled = true; }
+        function closeForm() {
+            if (form.parentNode) { form.parentNode.removeChild(form); }
+            if (addBtn) { addBtn.disabled = false; }
+        }
+
         // step=60 keeps the picker to hours and minutes (no seconds field).
         var start = el('input', { type: 'time', step: '60', class: 'trusted-time-input', value: '09:00' });
         var end = el('input', { type: 'time', step: '60', class: 'trusted-time-input', value: '17:00' });
         var label = el('input', { type: 'text', class: 'trusted-label-input', required: 'required', placeholder: i18n.newSlotLabel || 'Shift name' });
 
         var form = el('div', { class: 'trusted-slot trusted-slot-new' }, [
-            el('div', { class: 'trusted-new-times' }, [start, ' – ', end]),
+            el('div', { class: 'trusted-new-title', text: i18n.addingShift || 'Adding Shift' }),
             label,
+            el('div', { class: 'trusted-new-times' }, [
+                el('label', { class: 'trusted-new-time' }, [(i18n.newSlotStart || 'Start') + ' ', start]),
+                el('label', { class: 'trusted-new-time' }, [(i18n.newSlotEnd || 'End') + ' ', end])
+            ]),
             el('div', { class: 'trusted-new-actions' }, [
                 el('button', {
                     class: 'button button-small button-primary', text: i18n.save || 'Save',
@@ -736,13 +749,15 @@
                         api('/rota', { method: 'POST', body: { date: date, start: start.value, end: end.value, label: name } })
                             .then(function (slot) {
                                 slotsNode.replaceChild(buildSlotCard(slot), form);
+                                if (addBtn) { addBtn.disabled = false; } // form is gone; allow adding another
                             })
                             .catch(function (e) { window.alert(e.message); });
                     }
                 }),
-                el('button', { class: 'button button-small', text: i18n.cancel || 'Cancel', onclick: function () { slotsNode.removeChild(form); } })
+                el('button', { class: 'button button-small', text: i18n.cancel || 'Cancel', onclick: closeForm })
             ])
         ]);
+        // Show the form at the bottom of the slots, right above the Add Shift button.
         slotsNode.appendChild(form);
         label.focus();
     }
