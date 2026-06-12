@@ -11,5 +11,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="unity" />
     <orderEntry type="module" module-name="tsml-for-unity" />
+    <orderEntry type="module" module-name="reach" />
   </component>
 </module>
