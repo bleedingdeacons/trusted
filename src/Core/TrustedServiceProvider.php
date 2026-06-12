@@ -19,8 +19,11 @@ use Trusted\Factory\RotaFactory;
 use Trusted\Http\RestController;
 use Trusted\Repository\AssignmentRepository;
 use Trusted\Repository\RotaRepository;
+use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateApplicator;
+use Trusted\Template\TemplateParser;
 use Trusted\Template\TemplatePostType;
+use Trusted\Template\TemplateValidator;
 use Unity\Core\Interfaces\Container;
 use Unity\Members\Interfaces\MemberRepository;
 
@@ -66,10 +69,29 @@ class TrustedServiceProvider
             );
         });
 
+        $container->register(TemplateParser::class, static function (ContainerInterface $c): TemplateParser {
+            return new TemplateParser();
+        });
+
+        $container->register(ResponderDirectory::class, static function (ContainerInterface $c): ResponderDirectory {
+            return new ResponderDirectory($c->get(MemberRepository::class));
+        });
+
         $container->register(TemplateApplicator::class, static function (ContainerInterface $c): TemplateApplicator {
             return new TemplateApplicator(
                 $c->get(RotaRepositoryInterface::class),
-                $c->get(RotaFactoryInterface::class)
+                $c->get(RotaFactoryInterface::class),
+                $c->get(AssignmentRepositoryInterface::class),
+                $c->get(AssignmentFactoryInterface::class),
+                $c->get(ResponderDirectory::class),
+                $c->get(TemplateParser::class)
+            );
+        });
+
+        $container->register(TemplateValidator::class, static function (ContainerInterface $c): TemplateValidator {
+            return new TemplateValidator(
+                $c->get(ResponderDirectory::class),
+                $c->get(TemplateParser::class)
             );
         });
 

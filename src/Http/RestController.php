@@ -100,6 +100,12 @@ final class RestController
             'callback'            => [$this, 'applyTemplate'],
             'permission_callback' => [$this, 'can'],
         ]);
+
+        register_rest_route(self::NAMESPACE, '/template-from-week', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'createTemplateFromWeek'],
+            'permission_callback' => [$this, 'can'],
+        ]);
     }
 
     // --- Permission / validation -------------------------------------------
@@ -355,8 +361,8 @@ final class RestController
         $search = strtolower(trim(sanitize_text_field((string) $request->get_param('search'))));
         $out    = [];
 
-        foreach ($this->members->findAll([]) as $unityMember) {
-            if (! $unityMember instanceof UnityMember || ! $unityMember->isTelephoneResponder()) {
+        foreach ($this->members->findTelephoneResponders() as $unityMember) {
+            if (! $unityMember instanceof UnityMember) {
                 continue;
             }
 
@@ -409,6 +415,40 @@ final class RestController
         return new WP_REST_Response([
             'created'    => count($created),
             'week_start' => $weekStart,
+        ], 201);
+    }
+
+    /**
+     * Capture the given week's slots as a new shift template.
+     *
+     * Body: week_start (Y-m-d), title (the template name), and an optional
+     * include_members flag controlling whether each slot's assigned member is
+     * written into the template.
+     */
+    public function createTemplateFromWeek(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $weekStart      = $this->sanitiseDate($request->get_param('week_start'));
+        $title          = trim(sanitize_text_field((string) $request->get_param('title')));
+        $includeMembers = (bool) $request->get_param('include_members');
+
+        if ($weekStart === null) {
+            return new WP_Error('trusted_invalid', __('A valid week_start is required.', 'trusted'), ['status' => 400]);
+        }
+
+        if ($title === '') {
+            return new WP_Error('trusted_invalid', __('A template name is required.', 'trusted'), ['status' => 400]);
+        }
+
+        $weekStart  = $this->mondayOf($weekStart);
+        $templateId = $this->applicator->createFromWeek($weekStart, $title, $includeMembers);
+
+        if ($templateId <= 0) {
+            return new WP_Error('trusted_failed', __('The template could not be created.', 'trusted'), ['status' => 500]);
+        }
+
+        return new WP_REST_Response([
+            'id'    => $templateId,
+            'title' => $title,
         ], 201);
     }
 

@@ -166,7 +166,15 @@
             }
         });
 
-        return el('div', { class: 'trusted-toolbar' }, [
+        var toolbar;
+
+        var saveTemplateBtn = el('button', {
+            class: 'button trusted-save-template-start',
+            text: i18n.saveAsTemplate || 'Save week as template',
+            onclick: function () { openSaveTemplate(toolbar); }
+        });
+
+        toolbar = el('div', { class: 'trusted-toolbar' }, [
             el('div', { class: 'trusted-nav' }, [
                 el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
                 el('button', { class: 'button', text: i18n.today || 'This week', onclick: function () { state.weekStart = cfg.weekStart; render(); } }),
@@ -174,14 +182,70 @@
                 el('strong', { class: 'trusted-week-label', text: label })
             ]),
             el('div', { class: 'trusted-template-controls' }, [
-                // The bulk-assign entry hides while already in bulk mode; the
-                // bulk bar's Cancel button is the way back out.
+                // The bulk-assign and save-as-template entries hide while already
+                // in bulk mode; the bulk bar's Cancel button is the way back out.
                 state.bulk ? null : bulkBtn,
+                state.bulk ? null : saveTemplateBtn,
                 templateSelect,
                 el('label', { class: 'trusted-replace-label' }, [replaceBox, ' ' + (i18n.replace || 'Replace existing slots this week')]),
                 applyBtn
             ])
         ]);
+
+        return toolbar;
+    }
+
+    // Inline panel for capturing the current week as a new template. Inserted
+    // right after the toolbar; Save posts the week (optionally with its assigned
+    // members) and reloads so the new template appears in the dropdown.
+    function openSaveTemplate(toolbar) {
+        if (document.querySelector('.trusted-save-template')) { return; } // already open
+
+        var nameInput = el('input', { type: 'text', class: 'trusted-template-name-input', placeholder: i18n.templateName || 'Template name' });
+
+        var includeBox = el('input', { type: 'checkbox', id: 'trusted-include-members' });
+        includeBox.checked = true;
+
+        var saveBtn = el('button', {
+            class: 'button button-primary',
+            text: i18n.save || 'Save',
+            onclick: function () {
+                var name = nameInput.value.trim();
+                if (!name) {
+                    window.alert(i18n.templateNameRequired || 'Please enter a template name.');
+                    nameInput.focus();
+                    return;
+                }
+                saveBtn.disabled = true;
+                api('/template-from-week', {
+                    method: 'POST',
+                    body: { week_start: state.weekStart, title: name, include_members: includeBox.checked }
+                }).then(function (res) {
+                    state.templates = null; // force a reload so the new template shows up
+                    panel.parentNode.removeChild(panel);
+                    window.alert((i18n.templateSaved || 'Saved as template "%s".').replace('%s', (res && res.title) || name));
+                    render();
+                }).catch(function (e) {
+                    saveBtn.disabled = false;
+                    window.alert(e.message);
+                });
+            }
+        });
+
+        var cancelBtn = el('button', {
+            class: 'button',
+            text: i18n.cancel || 'Cancel',
+            onclick: function () { panel.parentNode.removeChild(panel); }
+        });
+
+        var panel = el('div', { class: 'trusted-save-template' }, [
+            el('label', { class: 'trusted-save-template-name' }, [(i18n.templateName || 'Template name') + ' ', nameInput]),
+            el('label', { class: 'trusted-save-template-include' }, [includeBox, ' ' + (i18n.includeMembers || 'Include assigned members')]),
+            el('div', { class: 'trusted-save-template-actions' }, [saveBtn, cancelBtn])
+        ]);
+
+        toolbar.parentNode.insertBefore(panel, toolbar.nextSibling);
+        nameInput.focus();
     }
 
     function renderGrid(grid, week) {

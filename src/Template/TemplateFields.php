@@ -39,6 +39,16 @@ final class TemplateFields
         'trusted_shifts_sun' => 7,
     ];
 
+    /**
+     * The ACF field key for a day field name. Mirrors the 'field_' prefix used
+     * when the group is registered, so other code (e.g. TemplateValidator) can
+     * address the same fields without duplicating the convention.
+     */
+    public static function fieldKey(string $name): string
+    {
+        return 'field_' . $name;
+    }
+
     public function register(): void
     {
         if (! function_exists('acf_add_local_field_group')) {
@@ -46,7 +56,7 @@ final class TemplateFields
         }
 
         $instructions = __(
-            'One shift per line: <code>HH:MM-HH:MM | Name</code>. Give every shift a name; if you omit it, the time range is used as the name.',
+            'One shift per line: <code>HH:MM-HH:MM | Name | Member</code>. Give every shift a name; if you omit it, the time range is used. The third field is optional — name a member by their anonymous name to pre-assign them when the template is applied. The member must exist and be a telephone responder, or the template won\'t save.',
             'trusted'
         );
 
@@ -64,14 +74,14 @@ final class TemplateFields
 
         foreach ($dayLabels as $name => $label) {
             $fields[] = [
-                'key'          => 'field_' . $name,
+                'key'          => self::fieldKey($name),
                 'label'        => $label,
                 'name'         => $name,
                 'type'         => 'textarea', // Free ACF field.
                 'instructions' => $instructions,
                 'rows'         => 4,
                 'new_lines'    => '', // Keep raw newlines; we parse them ourselves.
-                'placeholder'  => "09:00-13:00 | Reception\n13:00-17:00 | Reception",
+                'placeholder'  => "09:00-13:00 | Reception | John D\n13:00-17:00 | Reception",
             ];
         }
 

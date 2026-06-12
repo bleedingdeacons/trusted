@@ -10,6 +10,7 @@ use Trusted\Admin\DeveloperPage;
 use Trusted\Http\RestController;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplatePostType;
+use Trusted\Template\TemplateValidator;
 use Unity\Core\Interfaces\Container;
 
 /**
@@ -53,6 +54,12 @@ final class Plugin
         });
 
         add_action('acf/init', [new TemplateFields(), 'register']);
+
+        // Reject template saves that name an unknown member or a non-responder,
+        // so a template can never carry a name that won't resolve on apply.
+        add_action('acf/validate_save_post', static function () use ($container): void {
+            $container->get(TemplateValidator::class)->validate();
+        });
 
         add_action('admin_menu', [new CalendarPage(), 'registerMenu']);
         add_action('admin_enqueue_scripts', [new Assets(), 'enqueue']);

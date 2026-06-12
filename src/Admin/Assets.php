@@ -54,6 +54,12 @@ final class Assets
                 'bulkSkipped'   => __('%d shift(s) were already filled and left unchanged.', 'trusted'),
                 'noTemplates'   => __('No templates yet', 'trusted'),
                 'unassigned'    => __('Unassigned', 'trusted'),
+                'saveAsTemplate'       => __('Save week as template', 'trusted'),
+                'templateName'         => __('Template name', 'trusted'),
+                'includeMembers'       => __('Include assigned members', 'trusted'),
+                'templateNameRequired' => __('Please enter a template name.', 'trusted'),
+                /* translators: %s: the new template's name. */
+                'templateSaved'        => __('Saved as template "%s".', 'trusted'),
                 'confirmDelete' => __('Delete this shift slot and its assignments?', 'trusted'),
                 'newSlotStart'  => __('Start (HH:MM)', 'trusted'),
                 'newSlotEnd'    => __('End (HH:MM)', 'trusted'),

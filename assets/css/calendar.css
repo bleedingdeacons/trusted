@@ -122,12 +122,21 @@
     flex: 1;
 }
 
+/* Every shift card shares a minimum height so empty slots (just an "Assign"
+   button) stand as tall as filled ones (which carry an assignee block with the
+   member's name and contact line). The floor is set ABOVE the natural height of
+   the tallest card, so both empty and filled cards snap down to the same value
+   and the shifts line up horizontally across the seven day columns. Content
+   stacks from the top and the min-height pads the rest. */
 .trusted-slot {
     border: 1px solid #dcdcde;
     border-left: 3px solid #2271b1;
     border-radius: 3px;
     padding: 6px 8px;
     background: #fff;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
 }
 
 .trusted-slot-new {
@@ -275,6 +284,46 @@
     display: flex;
     gap: 6px;
     margin-top: 4px;
+}
+
+/* --- Save week as template ---------------------------------------------- */
+
+.trusted-save-template {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: center;
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid #2271b1;
+    border-radius: 4px;
+}
+
+.trusted-save-template-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.trusted-template-name-input {
+    min-width: 220px;
+}
+
+.trusted-save-template-include {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.trusted-save-template-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
 }
 
 /* --- Bulk assign (one member → many shifts) ----------------------------- */
