@@ -81,6 +81,69 @@
         while (node.firstChild) { node.removeChild(node.firstChild); }
     }
 
+    // --- Confirm tooltip (small ACF-style popup anchored to an element) -----
+
+    var activePopup = null;
+
+    function dismissPopup() {
+        if (!activePopup) { return; }
+        document.removeEventListener('mousedown', activePopup.outside, true);
+        document.removeEventListener('keydown', activePopup.outside, true);
+        if (activePopup.node.parentNode) { activePopup.node.parentNode.removeChild(activePopup.node); }
+        activePopup = null;
+    }
+
+    // Show a confirm bubble next to anchorEl: "<message> <Confirm> <Cancel>".
+    // Clicking the confirm link runs onConfirm; the cancel link, an outside
+    // click, or Escape just dismisses it. Only one popup shows at a time.
+    function showConfirm(anchorEl, message, confirmLabel, cancelLabel, onConfirm) {
+        dismissPopup();
+
+        var node = el('div', { class: 'trusted-tooltip top' }, [
+            el('span', { text: message + ' ' }),
+            el('a', {
+                href: '#', class: 'trusted-tooltip-confirm', text: confirmLabel,
+                onclick: function (e) { e.preventDefault(); dismissPopup(); if (onConfirm) { onConfirm(); } }
+            }),
+            document.createTextNode(' '),
+            el('a', {
+                href: '#', class: 'trusted-tooltip-cancel', text: cancelLabel,
+                onclick: function (e) { e.preventDefault(); dismissPopup(); }
+            })
+        ]);
+
+        node.style.visibility = 'hidden';
+        document.body.appendChild(node);
+
+        // Centre the bubble above the anchor, flipping below if there's no room.
+        var rect = anchorEl.getBoundingClientRect();
+        var w = node.offsetWidth, h = node.offsetHeight;
+        var top = rect.top - h - 10;
+        var left = Math.max(8, Math.min(rect.left + rect.width / 2 - w / 2, window.innerWidth - w - 8));
+        if (top < 8) {
+            node.classList.remove('top');
+            node.classList.add('bottom');
+            top = rect.bottom + 10;
+        }
+        node.style.top = top + 'px';
+        node.style.left = left + 'px';
+        node.style.visibility = '';
+
+        function outside(e) {
+            if (e.type === 'keydown' ? e.key === 'Escape' : !node.contains(e.target)) {
+                dismissPopup();
+            }
+        }
+
+        activePopup = { node: node, outside: outside };
+
+        // Defer so the click that opened the popup doesn't immediately close it.
+        window.setTimeout(function () {
+            document.addEventListener('mousedown', outside, true);
+            document.addEventListener('keydown', outside, true);
+        }, 0);
+    }
+
     // --- Data loading -------------------------------------------------------
 
     function loadMembers() {
@@ -466,13 +529,15 @@
         var deleteBtn = el('button', {
             class: 'trusted-slot-delete', title: i18n.remove || 'Remove', text: '×',
             onclick: function () {
-                if (!window.confirm(i18n.confirmDelete || 'Delete this slot?')) { return; }
-                api('/rota/' + slot.id, { method: 'DELETE' }).then(function () {
-                    var slotsNode = card.parentNode;
-                    if (slotsNode) {
-                        slotsNode.removeChild(card);
-                        refreshGaps(slotsNode); // the removed shift may open or close a gap
-                    }
+                // Confirm next to the × before deleting the shift.
+                showConfirm(deleteBtn, i18n.confirmRemove || 'Are you sure?', i18n.delete || 'Delete', i18n.cancel || 'Cancel', function () {
+                    api('/rota/' + slot.id, { method: 'DELETE' }).then(function () {
+                        var slotsNode = card.parentNode;
+                        if (slotsNode) {
+                            slotsNode.removeChild(card);
+                            refreshGaps(slotsNode); // the removed shift may open or close a gap
+                        }
+                    }).catch(function (e) { window.alert(e.message); });
                 });
             }
         });
@@ -510,7 +575,7 @@
             card.classList.toggle('trusted-slot-unassigned', !filled);
 
             (assignments || []).forEach(function (a) {
-                assignees.appendChild(buildAssignee(a, function () { paint([]); }));
+                assignees.appendChild(buildAssignee(a, paint));
             });
 
             if (!filled) {
@@ -650,7 +715,7 @@
             });
     }
 
-    function buildAssignee(assignment, onRemoved) {
+    function buildAssignee(assignment, repaint) {
         var m = assignment.member || {};
         var name = m.name || (i18n.unassigned || 'Unknown');
         var meta = [];
@@ -660,12 +725,15 @@
         var removeBtn = el('button', {
             class: 'trusted-assignee-remove', title: i18n.remove || 'Remove', text: '×',
             onclick: function () {
-                removeBtn.disabled = true;
-                api('/assignment/' + assignment.id, { method: 'DELETE' }).then(function () {
-                    if (onRemoved) { onRemoved(); }
-                }).catch(function (e) {
-                    removeBtn.disabled = false;
-                    window.alert(e.message);
+                // Confirm next to the × before actually removing.
+                showConfirm(removeBtn, i18n.confirmRemove || 'Are you sure?', i18n.remove || 'Remove', i18n.cancel || 'Cancel', function () {
+                    removeBtn.disabled = true;
+                    api('/assignment/' + assignment.id, { method: 'DELETE' })
+                        .then(function () { repaint([]); }) // slot is now empty
+                        .catch(function (e) {
+                            removeBtn.disabled = false;
+                            window.alert(e.message);
+                        });
                 });
             }
         });

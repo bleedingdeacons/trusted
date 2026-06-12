@@ -8,6 +8,7 @@ use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
 use Trusted\Admin\DeveloperPage;
 use Trusted\Http\RestController;
+use Trusted\Http\SignupController;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplatePostType;
 use Trusted\Template\TemplateValidator;
@@ -71,6 +72,7 @@ final class Plugin
 
         add_action('rest_api_init', function () use ($container): void {
             $container->get(RestController::class)->registerRoutes();
+            $container->get(SignupController::class)->registerRoutes();
         });
     }
 

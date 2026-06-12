@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Trusted\Http;
 
-use Trusted\Contracts\AssignmentFactoryInterface;
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaFactoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
+use Trusted\Service\ShiftSignup;
 use Trusted\Support\MemberPresenter;
 use Trusted\Template\TemplateApplicator;
 use Unity\Members\Interfaces\Member as UnityMember;
@@ -31,7 +31,7 @@ final class RestController
         private MemberRepository $members,
         private TemplateApplicator $applicator,
         private RotaFactoryInterface $rotaFactory,
-        private AssignmentFactoryInterface $assignmentFactory,
+        private ShiftSignup $signup,
     ) {
     }
 
@@ -293,12 +293,24 @@ final class RestController
             return new WP_Error('trusted_invalid', __('rota_id and a member_id are required.', 'trusted'), ['status' => 400]);
         }
 
-        if ($this->rota->find($rotaId) === null) {
-            return new WP_Error('trusted_not_found', __('Rota slot not found.', 'trusted'), ['status' => 404]);
+        $member = $this->resolveMember($memberIds[0]);
+
+        if ($member === null) {
+            return new WP_Error('trusted_invalid', __('That member could not be found.', 'trusted'), ['status' => 400]);
         }
 
-        // One member per shift: a slot that already has an assignee is full.
-        if ($this->assignments->findByRota($rotaId) !== []) {
+        try {
+            $result = $this->signup->assignResponder($member, [$rotaId], $notes);
+        } catch (\InvalidArgumentException $e) {
+            return new WP_Error('trusted_invalid', __('That member is not a telephone responder.', 'trusted'), ['status' => 400]);
+        }
+
+        if ($result['assigned'] !== []) {
+            return new WP_REST_Response(['created' => $result['assigned'], 'skipped' => []], 201);
+        }
+
+        // The single slot was skipped: report why with the matching HTTP status.
+        if (($result['skipped'][0]['reason'] ?? '') === 'full') {
             return new WP_Error(
                 'trusted_slot_full',
                 __('This shift already has a member assigned. Remove them first to reassign.', 'trusted'),
@@ -306,15 +318,7 @@ final class RestController
             );
         }
 
-        $memberId = $memberIds[0];
-
-        if (! ctype_digit($memberId) || $this->members->findById((int) $memberId) === null) {
-            return new WP_Error('trusted_invalid', __('That member could not be found.', 'trusted'), ['status' => 400]);
-        }
-
-        $saved = $this->assignments->save($this->assignmentFactory->create($rotaId, $memberId, $notes));
-
-        return new WP_REST_Response(['created' => [$saved->toArray()], 'skipped' => []], 201);
+        return new WP_Error('trusted_not_found', __('Rota slot not found.', 'trusted'), ['status' => 404]);
     }
 
     /**
@@ -335,30 +339,34 @@ final class RestController
             return new WP_Error('trusted_invalid', __('A member and at least one shift are required.', 'trusted'), ['status' => 400]);
         }
 
-        if (! ctype_digit($memberId) || $this->members->findById((int) $memberId) === null) {
+        $member = $this->resolveMember($memberId);
+
+        if ($member === null) {
             return new WP_Error('trusted_invalid', __('That member could not be found.', 'trusted'), ['status' => 400]);
         }
 
-        $created = [];
-        $skipped = [];
-
-        foreach ($rotaIds as $rotaId) {
-            if ($this->rota->find($rotaId) === null) {
-                $skipped[] = ['rota_id' => $rotaId, 'reason' => 'not_found'];
-                continue;
-            }
-
-            // One member per shift: a slot that already has an assignee is full.
-            if ($this->assignments->findByRota($rotaId) !== []) {
-                $skipped[] = ['rota_id' => $rotaId, 'reason' => 'full'];
-                continue;
-            }
-
-            $saved     = $this->assignments->save($this->assignmentFactory->create($rotaId, $memberId, $notes));
-            $created[] = $saved->toArray();
+        try {
+            $result = $this->signup->assignResponder($member, $rotaIds, $notes);
+        } catch (\InvalidArgumentException $e) {
+            return new WP_Error('trusted_invalid', __('That member is not a telephone responder.', 'trusted'), ['status' => 400]);
         }
 
-        return new WP_REST_Response(['created' => $created, 'skipped' => $skipped], 201);
+        return new WP_REST_Response(['created' => $result['assigned'], 'skipped' => $result['skipped']], 201);
+    }
+
+    /**
+     * Resolve a member id (numeric string) to a Unity member, or null when it
+     * isn't a valid, existing member.
+     */
+    private function resolveMember(string $memberId): ?UnityMember
+    {
+        if (! ctype_digit($memberId)) {
+            return null;
+        }
+
+        $member = $this->members->findById((int) $memberId);
+
+        return $member instanceof UnityMember ? $member : null;
     }
 
     /**

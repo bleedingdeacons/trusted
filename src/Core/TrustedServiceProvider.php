@@ -17,8 +17,10 @@ use Trusted\Contracts\RotaRepositoryInterface;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
 use Trusted\Http\RestController;
+use Trusted\Http\SignupController;
 use Trusted\Repository\AssignmentRepository;
 use Trusted\Repository\RotaRepository;
+use Trusted\Service\ShiftSignup;
 use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateApplicator;
 use Trusted\Template\TemplateParser;
@@ -95,6 +97,14 @@ class TrustedServiceProvider
             );
         });
 
+        $container->register(ShiftSignup::class, static function (ContainerInterface $c): ShiftSignup {
+            return new ShiftSignup(
+                $c->get(RotaRepositoryInterface::class),
+                $c->get(AssignmentRepositoryInterface::class),
+                $c->get(AssignmentFactoryInterface::class)
+            );
+        });
+
         $container->register(RestController::class, static function (ContainerInterface $c): RestController {
             return new RestController(
                 $c->get(RotaRepositoryInterface::class),
@@ -102,8 +112,12 @@ class TrustedServiceProvider
                 $c->get(MemberRepository::class),
                 $c->get(TemplateApplicator::class),
                 $c->get(RotaFactoryInterface::class),
-                $c->get(AssignmentFactoryInterface::class)
+                $c->get(ShiftSignup::class)
             );
+        });
+
+        $container->register(SignupController::class, static function (ContainerInterface $c): SignupController {
+            return new SignupController($c->get(ShiftSignup::class));
         });
 
         $container->register(TemplatePostType::class, static function (ContainerInterface $c): TemplatePostType {

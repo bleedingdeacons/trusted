@@ -64,15 +64,41 @@ final class RotaRepository implements RotaRepositoryInterface
             ARRAY_A
         );
 
+        return $this->hydrateRows($rows);
+    }
+
+    public function findForDate(string $date): array
+    {
+        $rows = $this->db->get_results(
+            $this->db->prepare(
+                "SELECT * FROM {$this->table}
+                 WHERE slot_date = %s
+                 ORDER BY start_time ASC, id ASC",
+                $date
+            ),
+            ARRAY_A
+        );
+
+        return $this->hydrateRows($rows);
+    }
+
+    /**
+     * Turn raw rows into Rota objects with their assignments eager-loaded in a
+     * single query. Shared by the week and day reads.
+     *
+     * @param array<int, array<string, mixed>>|null $rows
+     * @return Rota[]
+     */
+    private function hydrateRows(?array $rows): array
+    {
         if (! $rows) {
             return [];
         }
 
         $slots = array_map([$this->factory, 'fromRow'], $rows);
 
-        // Eager-load every assignment for the week in one query.
-        $ids       = array_map(static fn (Rota $r): int => (int) $r->id(), $slots);
-        $byRota    = $this->assignments->findByRotaIds($ids);
+        $ids    = array_map(static fn (Rota $r): int => (int) $r->id(), $slots);
+        $byRota = $this->assignments->findByRotaIds($ids);
 
         return array_map(
             static fn (Rota $r): Rota => $r->withAssignments($byRota[(int) $r->id()] ?? []),

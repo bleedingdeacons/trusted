@@ -19,6 +19,14 @@ interface RotaRepositoryInterface
     public function findForWeek(string $weekStart): array;
 
     /**
+     * All slots on a single date (Y-m-d), ordered by start time. Assignments
+     * are eager-loaded.
+     *
+     * @return Rota[]
+     */
+    public function findForDate(string $date): array;
+
+    /**
      * Insert when the entity has no id, otherwise update. Returns the entity
      * with its id populated.
      */
