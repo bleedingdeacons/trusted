@@ -3,10 +3,10 @@
 /**
  * Plugin Name:       Trusted
  * Description:       A 7-day telephone shift rota manager built on the Unity plugin. Build weekly shift templates, apply them to a week, and assign Unity telephone responders from a calendar view. Uses custom database tables behind an interface/factory/repository layer registered in Unity's container.
- * Version:           1.6.0
+ * Version:           1.6.1
  * Requires at least: 6.0
  * Requires PHP:      8.1
- * Requires Plugins:  unity
+ * Requires Plugins:  scrutiny
  * GitHub Plugin URI: https://github.com/thebleedingdeacons/trusted
  * GitHub Branch:     main
  * Author:            The Bleeding Deacons
@@ -84,13 +84,14 @@ add_action('unity/loaded', static function ($container): void {
 
 // If Unity never loads, Trusted cannot run — surface a clear admin notice.
 add_action('plugins_loaded', static function (): void {
-    if (function_exists('unity')) {
+    if (class_exists('Unity\\Plugin')) {
         return;
     }
 
     add_action('admin_notices', static function (): void {
-        echo '<div class="notice notice-error"><p>'
-            . esc_html__('Trusted requires the Unity plugin to be installed and active.', 'trusted')
-            . '</p></div>';
+        echo '<div class="notice notice-error"><p>';
+        echo '<strong>' . esc_html__('Trusted', 'trusted') . ':</strong> ';
+        echo esc_html__('This plugin requires the Unity plugin to be installed and activated.', 'trusted');
+        echo '</p></div>';
     });
 }, 20);
