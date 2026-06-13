@@ -33,29 +33,72 @@ final class ShiftSignup
     }
 
     /**
-     * The day's shifts for a member to choose from, in an anonymised form.
+     * The day's shifts for a member to choose from.
      *
-     * Carries no assignee details (name/email/phone) — only whether each shift
-     * is still open — so it is safe to surface outside the admin.
+     * For a filled shift it carries the assigned responder's display name (so a
+     * member can see who is covering it) but never their email or telephone. Open
+     * shifts carry an empty `assignee`.
      *
-     * @return array<int, array{id:int, date:string, start:string, end:string, label:string, is_open:bool}>
+     * When $memberId is given, each shift is flagged `is_mine` so the caller can
+     * offer that member a way to remove their own sign-up.
+     *
+     * @return array<int, array{id:int, date:string, start:string, end:string, label:string, is_open:bool, assignee:string, is_mine:bool}>
      */
-    public function openShiftsForDate(string $date): array
+    public function openShiftsForDate(string $date, ?string $memberId = null): array
     {
         $out = [];
 
         foreach ($this->rota->findForDate($date) as $slot) {
+            $assignments = $slot->assignments();
+            $isOpen      = $assignments === [];
+
+            $assignee = '';
+            $isMine   = false;
+            if (! $isOpen) {
+                $member   = $assignments[0]->member();
+                $assignee = $member !== null ? $member->name() : '';
+                $isMine   = $memberId !== null && $assignments[0]->memberId() === $memberId;
+            }
+
             $out[] = [
-                'id'      => (int) $slot->id(),
-                'date'    => $slot->slotDate(),
-                'start'   => $slot->startTime(),
-                'end'     => $slot->endTime(),
-                'label'   => $slot->label(),
-                'is_open' => $slot->assignments() === [],
+                'id'       => (int) $slot->id(),
+                'date'     => $slot->slotDate(),
+                'start'    => $slot->startTime(),
+                'end'      => $slot->endTime(),
+                'label'    => $slot->label(),
+                'is_open'  => $isOpen,
+                'assignee' => $assignee,
+                'is_mine'  => $isMine,
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Remove a responder's own sign-up from a shift.
+     *
+     * Deletes the assignment only when it belongs to the given member, so a
+     * member can never remove someone else's sign-up. Returns false when the
+     * member has no assignment on that shift (nothing to remove). The member MUST
+     * be a telephone responder — passing a non-responder is a programming error
+     * and throws, mirroring assignResponder().
+     */
+    public function removeResponder(UnityMember $member, int $rotaId): bool
+    {
+        if (! $member->isTelephoneResponder()) {
+            throw new InvalidArgumentException('Member is not a telephone responder.');
+        }
+
+        $memberId = (string) $member->getId();
+
+        foreach ($this->assignments->findByRota($rotaId) as $assignment) {
+            if ($assignment->memberId() === $memberId && $assignment->id() !== null) {
+                return $this->assignments->delete((int) $assignment->id());
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -47,6 +47,15 @@ final class SignupController
             'callback'            => [$this, 'signUp'],
             'permission_callback' => [$this, 'can'],
         ]);
+
+        register_rest_route(self::NAMESPACE, '/signup/(?P<rota>\d+)', [
+            'methods'             => WP_REST_Server::DELETABLE,
+            'callback'            => [$this, 'removeSignUp'],
+            'permission_callback' => [$this, 'can'],
+            'args'                => [
+                'rota' => ['validate_callback' => static fn ($value): bool => ctype_digit((string) $value)],
+            ],
+        ]);
     }
 
     /**
@@ -59,7 +68,10 @@ final class SignupController
 
     public function shifts(WP_REST_Request $request): WP_REST_Response
     {
-        return new WP_REST_Response($this->signup->openShiftsForDate((string) $request['date']));
+        $member   = $this->actingMember();
+        $memberId = $member !== null ? (string) $member->getId() : null;
+
+        return new WP_REST_Response($this->signup->openShiftsForDate((string) $request['date'], $memberId));
     }
 
     public function signUp(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -83,6 +95,33 @@ final class SignupController
         }
 
         return new WP_REST_Response($result, 201);
+    }
+
+    /**
+     * Remove the acting responder's own sign-up from a shift.
+     *
+     * A member can only ever remove their own assignment — the service deletes
+     * nothing when the shift is unassigned or held by someone else.
+     */
+    public function removeSignUp(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $member = $this->actingMember();
+
+        if ($member === null) {
+            return new WP_Error('trusted_unauthorised', __('Not signed in as a telephone responder.', 'trusted'), ['status' => 401]);
+        }
+
+        try {
+            $removed = $this->signup->removeResponder($member, (int) $request['rota']);
+        } catch (\InvalidArgumentException $e) {
+            return new WP_Error('trusted_forbidden', __('You are not a telephone responder.', 'trusted'), ['status' => 403]);
+        }
+
+        if (! $removed) {
+            return new WP_Error('trusted_not_assigned', __('You are not signed up for that shift.', 'trusted'), ['status' => 404]);
+        }
+
+        return new WP_REST_Response(['removed' => true, 'rota_id' => (int) $request['rota']]);
     }
 
     /**
