@@ -11,8 +11,32 @@
 
     var DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+    // Remember the last-viewed week across reloads so the calendar reopens on the
+    // same week the user navigated to, rather than snapping back to the current
+    // week each time the page loads.
+    var WEEK_STORAGE_KEY = 'trustedWeekStart';
+
+    function isIsoDate(v) {
+        return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    }
+
+    function loadStoredWeek() {
+        try {
+            var stored = window.localStorage.getItem(WEEK_STORAGE_KEY);
+            return isIsoDate(stored) ? stored : null;
+        } catch (e) {
+            return null; // storage may be unavailable (private mode, etc.)
+        }
+    }
+
+    function saveWeek(isoDate) {
+        try {
+            window.localStorage.setItem(WEEK_STORAGE_KEY, isoDate);
+        } catch (e) { /* ignore — persistence is best-effort */ }
+    }
+
     var state = {
-        weekStart: cfg.weekStart,
+        weekStart: loadStoredWeek() || cfg.weekStart,
         members: null,   // cached member list
         templates: null, // cached template list
         bulk: null       // bulk-assign mode: { memberId: '', selected: { rotaId: true } }
@@ -162,9 +186,19 @@
         });
     }
 
+    // Re-fetch everything in place — drops the cached members/templates so they
+    // reload too, then re-renders the current week. No full page reload, and the
+    // viewed week is preserved (render() always re-fetches state.weekStart).
+    function refresh() {
+        state.members = null;
+        state.templates = null;
+        render();
+    }
+
     // --- Rendering ----------------------------------------------------------
 
     function render() {
+        saveWeek(state.weekStart); // remember the week for the next reload
         closeOpenPicker = null; // the DOM is about to be rebuilt
         clear(root);
         root.appendChild(el('p', { class: 'trusted-loading', text: 'Loading rota…' }));
@@ -289,6 +323,7 @@
                 el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
                 el('button', { class: 'button', text: i18n.today || 'This week', onclick: function () { state.weekStart = cfg.weekStart; render(); } }),
                 el('button', { class: 'button', text: i18n.nextWeek || 'Next →', onclick: function () { state.weekStart = addDays(state.weekStart, 7); render(); } }),
+                el('button', { class: 'button trusted-refresh', title: i18n.refresh || 'Refresh', text: i18n.refresh || '⟳ Refresh', onclick: refresh }),
                 el('strong', { class: 'trusted-week-label', text: label })
             ]),
             el('div', { class: 'trusted-template-controls' }, [
