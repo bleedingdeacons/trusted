@@ -319,21 +319,32 @@
         }
 
         toolbar = el('div', { class: 'trusted-toolbar' }, [
+            // Section 1: week navigation — the week label sits above the
+            // Previous / This week / Next buttons.
             el('div', { class: 'trusted-nav' }, [
-                el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
-                el('button', { class: 'button', text: i18n.today || 'This week', onclick: function () { state.weekStart = cfg.weekStart; render(); } }),
-                el('button', { class: 'button', text: i18n.nextWeek || 'Next →', onclick: function () { state.weekStart = addDays(state.weekStart, 7); render(); } }),
-                el('button', { class: 'button trusted-refresh', title: i18n.refresh || 'Refresh', text: i18n.refresh || '⟳ Refresh', onclick: refresh }),
-                el('strong', { class: 'trusted-week-label', text: label })
+                el('strong', { class: 'trusted-week-label', text: label }),
+                el('div', { class: 'trusted-week-buttons' }, [
+                    el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
+                    el('button', { class: 'button', text: i18n.today || 'This week', onclick: function () { state.weekStart = cfg.weekStart; render(); } }),
+                    el('button', { class: 'button', text: i18n.nextWeek || 'Next →', onclick: function () { state.weekStart = addDays(state.weekStart, 7); render(); } })
+                ])
             ]),
-            el('div', { class: 'trusted-template-controls' }, [
-                // The bulk-assign and save-as-template entries hide while already
-                // in bulk mode; the bulk bar's Cancel button is the way back out.
+            // Section 2: actions — refresh, the bulk-assign / save-as-template
+            // entry points (both hidden while already in bulk mode; the bulk
+            // bar's Cancel button is the way back out), and the apply-a-template
+            // controls (dropdown / Replace / Apply).
+            el('div', { class: 'trusted-view-actions' }, [
+                el('button', { class: 'button trusted-refresh', title: i18n.refresh || 'Refresh', text: i18n.refresh || '⟳ Refresh', onclick: refresh }),
                 state.bulk ? null : bulkBtn,
                 state.bulk ? null : saveTemplateBtn,
                 templateSelect,
                 el('label', { class: 'trusted-replace-label' }, [replaceBox, ' ' + (i18n.replace || 'Replace existing slots this week')]),
-                applyBtn,
+                applyBtn
+            ]),
+            // Section 3: destructive week-level actions on their own — "Clear
+            // week" (unstarted weeks) or "Delete week's assignments" (once
+            // someone's assigned). Both null in bulk mode, leaving this empty.
+            el('div', { class: 'trusted-delete-actions' }, [
                 clearBtn,
                 clearAssignmentsBtn
             ])

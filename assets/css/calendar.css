@@ -32,7 +32,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     margin: 16px 0;
     padding: 12px 16px;
@@ -41,18 +41,36 @@
     border-radius: 4px;
 }
 
+/* Section 1: the week label stacked above the prev / this week / next row. */
 .trusted-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.trusted-week-buttons {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .trusted-week-label {
-    margin-left: 8px;
     color: #1d2327;
+    font-size: 18px;
 }
 
-.trusted-template-controls {
+/* Section 2: refresh, bulk-assign, save-as-template, and the apply-a-template
+   controls (dropdown / Replace / Apply). */
+.trusted-view-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Section 3: destructive week-level actions, kept apart from everything else. */
+.trusted-delete-actions {
     display: flex;
     align-items: center;
     gap: 10px;
