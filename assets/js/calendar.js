@@ -70,10 +70,21 @@
 
     // --- Date helpers -------------------------------------------------------
 
+    // Format a Date as YYYY-MM-DD from its local components. Going via
+    // toISOString() first converts to UTC, which shifts the date back a day in
+    // timezones ahead of UTC (e.g. UK summer time), landing week navigation on
+    // the wrong day.
+    function toIsoDate(d) {
+        var y = d.getFullYear();
+        var m = ('0' + (d.getMonth() + 1)).slice(-2);
+        var day = ('0' + d.getDate()).slice(-2);
+        return y + '-' + m + '-' + day;
+    }
+
     function addDays(isoDate, days) {
         var d = new Date(isoDate + 'T00:00:00');
         d.setDate(d.getDate() + days);
-        return d.toISOString().slice(0, 10);
+        return toIsoDate(d);
     }
 
     function prettyDate(isoDate) {

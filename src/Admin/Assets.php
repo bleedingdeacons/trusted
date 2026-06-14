@@ -84,7 +84,11 @@ final class Assets
 
     private function currentMonday(): string
     {
-        $dt  = new \DateTimeImmutable('today');
+        // Anchor "this week" to the site's configured timezone (Settings →
+        // General) rather than PHP's default (UTC under WordPress). On a site
+        // running ahead of UTC, `new DateTimeImmutable('today')` can still read
+        // as the previous day, opening the calendar on the wrong week.
+        $dt  = current_datetime();
         $dow = (int) $dt->format('N');
 
         return $dt->modify('-' . ($dow - 1) . ' days')->format('Y-m-d');
