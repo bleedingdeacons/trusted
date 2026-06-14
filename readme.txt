@@ -4,7 +4,7 @@ Tags: rota, shifts, telephony, responders, scheduling
 Requires at least: 6.0
 Tested up to: 6.9
 Stable tag: 1.7.3
-Build date: 2026/06/14 23:02:39
+Build date: 2026/06/14 23:04:34
 Requires PHP: 8.1
 License: MIT (Modified)
 
