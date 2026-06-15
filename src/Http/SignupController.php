@@ -56,6 +56,32 @@ final class SignupController
                 'rota' => ['validate_callback' => static fn ($value): bool => ctype_digit((string) $value)],
             ],
         ]);
+
+        // These endpoints are per-member and authorised by Reach's session
+        // cookie, which shared caches (SiteGround, Cloudflare, the browser)
+        // don't recognise. WordPress only sends REST no-cache headers when the
+        // request is from a logged-in WP user (`rest_send_nocache_headers`
+        // defaults to is_user_logged_in()), so an anonymous responder's shift
+        // list would otherwise be cached and served stale to the next visitor —
+        // making a successful sign-up look like it didn't take. Force no-store
+        // across the sign-up namespace so one member's view is never reused.
+        add_filter('rest_post_dispatch', [$this, 'sendNoCacheHeaders'], 10, 3);
+    }
+
+    /**
+     * Mark the member-facing sign-up responses as uncacheable. See the note in
+     * registerRoutes() for why core's default REST headers aren't enough here.
+     */
+    public function sendNoCacheHeaders(
+        WP_REST_Response $response,
+        WP_REST_Server $server,
+        WP_REST_Request $request
+    ): WP_REST_Response {
+        if (str_starts_with(ltrim((string) $request->get_route(), '/'), self::NAMESPACE . '/signup')) {
+            $response->header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
+        }
+
+        return $response;
     }
 
     /**
