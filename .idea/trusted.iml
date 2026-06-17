@@ -12,7 +12,5 @@
     <orderEntry type="module" module-name="unity" />
     <orderEntry type="module" module-name="tsml-for-unity" />
     <orderEntry type="module" module-name="reach" />
-    <orderEntry type="module" module-name="steward" />
-    <orderEntry type="module" module-name="stalwart" />
   </component>
 </module>
