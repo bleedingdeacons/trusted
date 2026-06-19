@@ -63,7 +63,7 @@ final class TemplateFields
         $help = '<p>' . __('Add one shift per line in each day, using:', 'trusted')
             . ' <code>HH:MM-HH:MM | Name | Member</code></p>'
             . '<ul style="list-style: disc; margin-left: 1.4em;">'
-            . '<li>' . __('<strong>Times</strong> are 24-hour, e.g. <code>09:00-17:00</code>.', 'trusted') . '</li>'
+            . '<li>' . __('<strong>Times</strong> are 24-hour, from <code>00:00</code> to <code>24:00</code>, e.g. <code>09:00-17:00</code>. Use <code>00:00</code> for the start of the day and <code>24:00</code> for the end of the day, so a full day is <code>00:00-24:00</code>.', 'trusted') . '</li>'
             . '<li>' . __('<strong>Name</strong> is required — a line without one won\'t save.', 'trusted') . '</li>'
             . '<li>' . __('<strong>Member</strong> is optional: their anonymous name. They must be an existing telephone responder or the template won\'t save, and they\'re pre-assigned automatically when the template is applied.', 'trusted') . '</li>'
             . '</ul>'

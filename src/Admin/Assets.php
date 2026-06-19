@@ -40,6 +40,7 @@ final class Assets
                 'selectMember'  => __('Select Member', 'trusted'),
                 'addShift'      => __('Add Shift', 'trusted'),
                 'applyTemplate' => __('Apply template', 'trusted'),
+                'selectTemplate' => __('Select Template', 'trusted'),
                 'replace'       => __('Replace existing slots this week', 'trusted'),
                 'prevWeek'      => __('← Previous', 'trusted'),
                 'nextWeek'      => __('Next →', 'trusted'),

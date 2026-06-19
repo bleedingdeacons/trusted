@@ -40,7 +40,12 @@ final class CalendarPage
     public function render(): void
     {
         echo '<div class="wrap trusted-wrap">';
+        // The refresh button (added by calendar.js) is mounted into this header
+        // so it sits inline next to the title rather than down in the toolbar.
+        echo '<div class="trusted-page-header">';
         echo '<h1>' . esc_html__('Telephone Rota', 'trusted') . '</h1>';
+        echo '<span id="trusted-title-actions" class="trusted-title-actions"></span>';
+        echo '</div>';
 
         if (! function_exists('acf_add_local_field_group')) {
             echo '<div class="notice notice-warning"><p>'

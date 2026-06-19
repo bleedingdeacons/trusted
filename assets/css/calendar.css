@@ -1,3 +1,22 @@
+/* Page title row: the "Telephone Rota" heading with the refresh button mounted
+   inline beside it (calendar.js fills .trusted-title-actions). */
+.trusted-page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.trusted-page-header h1 {
+    margin: 0;
+    padding: 0;
+}
+
+.trusted-title-actions {
+    display: inline-flex;
+    align-items: center;
+}
+
 .trusted-wrap .trusted-loading {
     color: #646970;
     font-style: italic;
@@ -69,12 +88,19 @@
     flex-wrap: wrap;
 }
 
-/* Section 3: destructive week-level actions, kept apart from everything else. */
+/* Section 3: destructive week-level actions, kept apart from everything else.
+   Stacked vertically, one button per line. */
 .trusted-delete-actions {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.trusted-delete-actions .button {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
 }
 
 .trusted-replace-label {
@@ -83,6 +109,44 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    margin: 0;
+}
+
+/* Week-level actions stacked vertically: Save week as template, then Assign
+   members — each on its own line. */
+.trusted-week-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.trusted-week-actions .button {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* Apply-a-template controls stacked vertically: Select Template, the Replace
+   toggle, then Apply template — each on its own line, left-aligned. */
+.trusted-apply-template {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.trusted-apply-template .trusted-template-select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Apply button sits on a row with the Replace toggle beside it. */
+.trusted-apply-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
 }
 
 /* Always 7 columns — one per day of the week. Stretch so every day column
@@ -301,6 +365,7 @@
 .trusted-template-select {
     width: auto;
     min-width: 180px;
+    min-height: 30px;
 }
 
 /* "Add Shift" button under the day header. Inset to line up with the slot cards

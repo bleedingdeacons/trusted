@@ -248,7 +248,7 @@
         var label = state.weekStart + ' – ' + addDays(state.weekStart, 6);
 
         var templateSelect = el('select', { class: 'trusted-template-select' });
-        templateSelect.appendChild(el('option', { value: '', text: i18n.applyTemplate || 'Apply template' }));
+        templateSelect.appendChild(el('option', { value: '', text: i18n.selectTemplate || 'Select Template' }));
         (state.templates || []).forEach(function (t) {
             templateSelect.appendChild(el('option', { value: t.id, text: t.title }));
         });
@@ -260,6 +260,9 @@
         var applyBtn = el('button', {
             class: 'button button-primary',
             text: i18n.applyTemplate || 'Apply template',
+            // Disabled until a real template is picked — the "Select Template"
+            // placeholder has an empty value, so nothing to apply.
+            disabled: 'disabled',
             onclick: function () {
                 var id = parseInt(templateSelect.value, 10);
                 if (!id) { return; }
@@ -276,6 +279,11 @@
                 });
             }
         });
+
+        // Enable Apply only while a real template is selected.
+        templateSelect.onchange = function () {
+            applyBtn.disabled = !parseInt(templateSelect.value, 10);
+        };
 
         var bulkBtn = el('button', {
             class: 'button trusted-bulk-start',
@@ -345,12 +353,21 @@
             // bar's Cancel button is the way back out), and the apply-a-template
             // controls (dropdown / Replace / Apply).
             el('div', { class: 'trusted-view-actions' }, [
-                el('button', { class: 'button trusted-refresh', title: i18n.refresh || 'Refresh', text: i18n.refresh || '⟳ Refresh', onclick: refresh }),
-                state.bulk ? null : bulkBtn,
-                state.bulk ? null : saveTemplateBtn,
-                templateSelect,
-                el('label', { class: 'trusted-replace-label' }, [replaceBox, ' ' + (i18n.replace || 'Replace existing slots this week')]),
-                applyBtn
+                // Week-level actions stacked together: Save week as template, then
+                // Assign members. Both hidden while already in bulk mode.
+                state.bulk ? null : el('div', { class: 'trusted-week-actions' }, [
+                    saveTemplateBtn,
+                    bulkBtn
+                ]),
+                // Apply-a-template controls: the dropdown on top, then the Apply
+                // button with the Replace toggle alongside it.
+                el('div', { class: 'trusted-apply-template' }, [
+                    templateSelect,
+                    el('div', { class: 'trusted-apply-row' }, [
+                        applyBtn,
+                        el('label', { class: 'trusted-replace-label' }, [replaceBox, ' ' + (i18n.replace || 'Replace existing slots this week')])
+                    ])
+                ])
             ]),
             // Section 3: destructive week-level actions on their own — "Clear
             // week" (unstarted weeks) or "Delete week's assignments" (once
@@ -968,6 +985,19 @@
             slotsNode.appendChild(form);
         }
         label.focus();
+    }
+
+    // Mount the refresh button inline beside the "Telephone Rota" title (the
+    // header span rendered by CalendarPage). Built once here rather than in the
+    // toolbar, so it survives week-to-week re-renders.
+    var titleActions = document.getElementById('trusted-title-actions');
+    if (titleActions) {
+        titleActions.appendChild(el('button', {
+            class: 'button trusted-refresh',
+            title: i18n.refresh || 'Refresh',
+            text: i18n.refresh || '⟳ Refresh',
+            onclick: refresh
+        }));
     }
 
     render();
