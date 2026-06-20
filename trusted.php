@@ -3,10 +3,10 @@
 /**
  * Plugin Name:       Trusted
  * Description:       A 7-day telephone shift rota manager built on the Unity plugin. Build weekly shift templates, apply them to a week, and assign Unity telephone responders from a calendar view. Uses custom database tables behind an interface/factory/repository layer registered in Unity's container.
- * Version:           1.7.9
+ * Version:           1.7.10
  * Requires at least: 6.0
  * Requires PHP:      8.1
- * Requires Plugins:  scrutiny
+ * Requires Plugins:  scrutiny, beacon
  * GitHub Plugin URI: https://github.com/thebleedingdeacons/trusted
  * GitHub Branch:     main
  * Author:            The Bleeding Deacons
@@ -82,6 +82,26 @@ add_action('unity/loaded', static function ($container): void {
     Plugin::instance()->boot($container);
 });
 
+/*
+ * Beacon integration.
+ *
+ * Beacon's forwarding API is private — only callable in-process from a
+ * trusted plugin service, never over HTTP (it controls where helpline
+ * calls get routed). We hook `beacon/loaded` and hand Beacon's container
+ * to our Plugin singleton, which resolves the bound CallForwardingService
+ * lazily on demand. The concrete driver (e.g. Tamar) is only present once
+ * an implementation plugin is active; Plugin::forwardingService() returns
+ * null otherwise, so Trusted degrades gracefully.
+ *
+ * Registered at include time so it works regardless of whether Beacon
+ * fires before or after Unity during `plugins_loaded`.
+ */
+add_action('beacon/loaded', static function ($container): void {
+    if ($container instanceof \Psr\Container\ContainerInterface) {
+        Plugin::instance()->useBeaconContainer($container);
+    }
+});
+
 // If Unity never loads, Trusted cannot run — surface a clear admin notice.
 add_action('plugins_loaded', static function (): void {
     if (class_exists('Unity\\Plugin')) {
@@ -95,3 +115,23 @@ add_action('plugins_loaded', static function (): void {
         echo '</p></div>';
     });
 }, 20);
+
+/*
+ * Warn when Beacon is present but no forwarding driver is bound — call
+ * forwarding can't operate until an implementation plugin (e.g. Tamar) is
+ * active. Shown only to operators who can manage forwarding, so it never
+ * nags users who couldn't act on it; stays silent once a driver is bound.
+ */
+add_action('admin_notices', static function (): void {
+    if (! current_user_can('beacon_manage_forwarding')) {
+        return;
+    }
+    if (! class_exists('Beacon\\Plugin') || \Beacon\Plugin::hasDriver()) {
+        return;
+    }
+
+    echo '<div class="notice notice-warning"><p>';
+    echo '<strong>' . esc_html__('Trusted', 'trusted') . ':</strong> ';
+    echo esc_html__('No call-forwarding driver is active, so forwarding changes will not be applied. Activate a Beacon implementation plugin (e.g. Tamar).', 'trusted');
+    echo '</p></div>';
+});

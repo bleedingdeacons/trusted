@@ -2,7 +2,7 @@
 
 A 7-day telephone shift **rota manager** for WordPress.
 
-**Version:** 1.7.9
+**Version:** 1.7.10
 **Requires:** WordPress 6.0+ · PHP 8.1+
 **License:** MIT (Modified)
 
