@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trusted — Telephone Rota Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="/wp-includes/css/dashicons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #FAFAF8;
+            --surface: #FFFFFF;
+            --border: #E8E5E0;
+            --text: #1A1A18;
+            --text-secondary: #6B6860;
+            --accent: #2271B1;
+            --accent-bg: #E3F0FB;
+            --accent-dark: #135E96;
+            --info: #1D4ED8;
+            --info-bg: #DBEAFE;
+            --danger: #DC2626;
+            --danger-bg: #FEE2E2;
+            --success: #16A34A;
+            --success-bg: #DCFCE7;
+            --purple: #7C3AED;
+            --purple-bg: #EDE9FE;
+            --amber: #D97706;
+            --amber-bg: #FEF3C7;
+            --amber-dark: #B45309;
+            --code-bg: #F1F4F7;
+            --nav-width: 280px;
+            --header-height: 64px;
+            --radius: 10px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 24px); }
+        body {
+            font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.7;
+            color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Header ── */
+        .site-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: var(--header-height); background: rgba(250,250,248,0.92);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 24px; gap: 16px;
+        }
+        .site-header .logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 20px; color: var(--text);
+            text-decoration: none; letter-spacing: -0.3px;
+        }
+        .site-header .logo span { color: var(--accent); }
+        .site-header .version {
+            font-size: 12px; font-weight: 500; color: var(--text-secondary);
+            background: var(--code-bg); padding: 2px 8px; border-radius: 6px;
+        }
+        .hamburger {
+            display: none; background: none; border: none; cursor: pointer;
+            width: 36px; height: 36px; flex-shrink: 0;
+            border-radius: 8px; align-items: center; justify-content: center;
+        }
+        .hamburger:hover { background: var(--code-bg); }
+        .hamburger svg { width: 22px; height: 22px; color: var(--text); }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed; top: var(--header-height); left: 0; bottom: 0;
+            width: var(--nav-width); overflow-y: auto;
+            border-right: 1px solid var(--border);
+            background: var(--bg); padding: 24px 0; z-index: 90;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .nav-section { padding: 0 20px; margin-bottom: 24px; }
+        .nav-section-title {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; padding-left: 12px;
+        }
+        .nav-link {
+            display: block; padding: 6px 12px; border-radius: 8px;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 14px; font-weight: 400; transition: all 0.15s; line-height: 1.5;
+        }
+        .nav-link:hover { color: var(--text); background: var(--surface); }
+        .nav-link.active { color: var(--accent-dark); background: var(--accent-bg); font-weight: 500; }
+
+        /* ── Main ── */
+        .main {
+            margin-left: var(--nav-width);
+            padding: calc(var(--header-height) + 40px) 48px 80px; max-width: 880px;
+        }
+
+        /* ── Typography ── */
+        h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.2; margin-bottom: 12px; }
+        h1 .emoji { font-size: 32px; margin-right: 4px; }
+        .subtitle { font-size: 18px; color: var(--text-secondary); font-weight: 400; margin-bottom: 40px; line-height: 1.6; }
+        h2 {
+            font-size: 24px; font-weight: 700; letter-spacing: -0.4px;
+            margin-top: 56px; margin-bottom: 16px; padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+        h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+        h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 10px; }
+        p { margin-bottom: 16px; }
+        ul, ol { margin-bottom: 16px; padding-left: 24px; }
+        li { margin-bottom: 6px; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .card h3 { margin-top: 0; }
+        .card p:last-child { margin-bottom: 0; }
+
+        /* ── Callouts ── */
+        .callout {
+            border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
+            font-size: 15px; display: flex; gap: 12px; align-items: flex-start; line-height: 1.6;
+        }
+        .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .callout.info    { background: var(--info-bg);    border-left: 4px solid var(--info); }
+        .callout.warning { background: var(--amber-bg);   border-left: 4px solid var(--amber); }
+        .callout.danger  { background: var(--danger-bg);  border-left: 4px solid var(--danger); }
+        .callout.success { background: var(--success-bg); border-left: 4px solid var(--success); }
+        .callout.purple  { background: var(--purple-bg);  border-left: 4px solid var(--purple); }
+
+        /* ── Code ── */
+        code {
+            font-family: 'JetBrains Mono', monospace; font-size: 13.5px;
+            background: var(--code-bg); padding: 2px 7px; border-radius: 5px; color: var(--accent-dark);
+        }
+        pre {
+            font-family: 'JetBrains Mono', monospace; font-size: 13.5px;
+            background: var(--code-bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 14px 16px; margin-bottom: 24px;
+            overflow-x: auto; line-height: 1.6; color: var(--text);
+        }
+        pre code { background: none; padding: 0; color: var(--text); }
+
+        /* ── Steps ── */
+        .steps { counter-reset: step; list-style: none; padding-left: 0; }
+        .steps li {
+            counter-increment: step; padding-left: 44px; position: relative;
+            margin-bottom: 20px; min-height: 32px;
+        }
+        .steps li::before {
+            content: counter(step); position: absolute; left: 0; top: 0;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: var(--accent); color: #fff;
+            font-weight: 700; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Breadcrumb / path navigation ── */
+        .path {
+            display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px;
+            background: var(--code-bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 14px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .path .crumb { color: var(--text); }
+        .path .sep { color: var(--text-secondary); margin: 0 2px; }
+        .path .crumb.final { color: var(--accent-dark); font-weight: 600; }
+
+        /* ── Field reference table ── */
+        .field-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 15px; }
+        .field-table th {
+            text-align: left; padding: 10px 16px; font-weight: 600;
+            border-bottom: 2px solid var(--border); font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);
+        }
+        .field-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .field-table tr:last-child td { border-bottom: none; }
+        .field-table .field-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent-dark); font-weight: 500; white-space: nowrap; }
+        .field-table .req { color: var(--danger); font-size: 12px; font-weight: 700; margin-left: 4px; }
+
+        /* ── Status badges ── */
+        .badge {
+            display: inline-block; padding: 2px 10px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; white-space: nowrap;
+        }
+        .badge-on      { background: var(--success-bg); color: var(--success); }
+        .badge-off     { background: #F3F4F6; color: #6B7280; }
+        .badge-open    { background: var(--amber-bg); color: var(--amber-dark); }
+        .badge-filled  { background: var(--success-bg); color: var(--success); }
+        .badge-tip     { background: var(--info-bg); color: var(--info); }
+
+        /* ── Status / generic table ── */
+        .status-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 15px; }
+        .status-table th {
+            text-align: left; padding: 10px 16px; font-weight: 600;
+            border-bottom: 2px solid var(--border); font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);
+        }
+        .status-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .status-table tr:last-child td { border-bottom: none; }
+
+        /* ── Screen mockup ── */
+        .screen-mock {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden;
+            margin-bottom: 24px; box-shadow: var(--shadow-sm);
+        }
+        .screen-mock .mock-bar {
+            background: #1D2327; padding: 10px 16px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .screen-mock .mock-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .screen-mock .mock-bar .dot.r { background: #FF5F57; }
+        .screen-mock .mock-bar .dot.y { background: #FFBD2E; }
+        .screen-mock .mock-bar .dot.g { background: #28C940; }
+        .screen-mock .mock-bar .url {
+            flex: 1; background: #2D3748; border-radius: 4px;
+            padding: 4px 10px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+            color: #A0AEC0;
+        }
+        .screen-mock .mock-body { display: flex; min-height: 200px; }
+        /* WordPress-style dark admin menu. */
+        .screen-mock .mock-sidebar {
+            width: 184px; background: #1d2327; padding: 0; flex-shrink: 0;
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        .screen-mock .mock-sidebar .mock-menu-item {
+            padding: 8px 12px; font-size: 13px; color: #f0f0f1;
+            display: flex; align-items: center; gap: 9px; line-height: 1.3;
+        }
+        .screen-mock .mock-sidebar .mock-menu-item .mock-ico {
+            font-size: 17px; width: 18px; height: 18px; color: #a7aaad; flex-shrink: 0;
+        }
+        .screen-mock .mock-sidebar .mock-menu-item.active .mock-ico,
+        .screen-mock .mock-sidebar .mock-menu-item.parent .mock-ico { color: #fff; }
+        /* Highlighted (current) top-level item — WP blue. */
+        .screen-mock .mock-sidebar .mock-menu-item.active {
+            background: #2271b1; color: #fff; font-weight: 400;
+        }
+        .screen-mock .mock-sidebar .mock-menu-item.active .mock-ico { opacity: 1; }
+        /* The open parent whose submenu is showing — darker panel, white text. */
+        .screen-mock .mock-sidebar .mock-menu-item.parent {
+            background: #2c3338; color: #fff; font-weight: 600;
+        }
+        .screen-mock .mock-sidebar .mock-submenu { background: #2c3338; padding: 4px 0 6px; }
+        .screen-mock .mock-sidebar .mock-sub-item {
+            padding: 5px 12px 5px 37px; font-size: 12px; color: #c3c4c7;
+        }
+        .screen-mock .mock-sidebar .mock-sub-item.active { color: #72aee6; font-weight: 600; }
+        .screen-mock .mock-sidebar .mock-menu-sep {
+            height: 0; border-top: 1px solid #3c434a; margin: 6px 0;
+        }
+        .screen-mock .mock-content { flex: 1; padding: 20px 24px; background: #fff; }
+        .screen-mock .mock-content .mock-title {
+            font-size: 20px; font-weight: 700; margin-bottom: 12px; color: var(--text);
+        }
+
+        /* ── Rota grid mockup ── */
+        .rota-mock { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+        .rota-day {
+            flex: 1; min-width: 120px; border: 1px solid var(--border);
+            border-radius: 8px; background: #FCFCFB; padding: 8px;
+        }
+        .rota-day-head { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+        .rota-day-head span { display: block; font-weight: 400; color: var(--text-secondary); font-size: 11px; }
+        .rota-slot {
+            border: 1px solid var(--border); border-left: 4px solid var(--accent);
+            border-radius: 6px; background: #fff;
+            padding: 6px 8px; margin-bottom: 6px; font-size: 11px; line-height: 1.4;
+        }
+        .rota-slot.open { border-left-color: var(--amber); }
+        .rota-slot .t { font-weight: 600; color: var(--text); }
+        .rota-slot .l { color: var(--text-secondary); }
+        .rota-slot .who { color: var(--accent-dark); font-weight: 600; margin-top: 2px; }
+        .rota-slot .meta { color: var(--text-secondary); font-size: 10px; }
+        .rota-gap {
+            font-size: 10px; color: var(--amber-dark); background: var(--amber-bg);
+            border-radius: 4px; padding: 2px 6px; margin-bottom: 6px; text-align: center;
+        }
+
+        /* ── Legend swatches: the coloured left bar / full-yellow gap ── */
+        .bar-demo {
+            display: inline-block; min-width: 120px; vertical-align: middle; text-align: left;
+            border: 1px solid var(--border); border-radius: 5px; background: #fff;
+            padding: 4px 9px; font-size: 11px; line-height: 1.35; white-space: nowrap;
+        }
+        .bar-demo strong { font-weight: 600; }
+        .bar-demo .demo-sub { color: var(--text-secondary); }
+        .bar-demo.alloc   { border-left: 5px solid var(--accent); }
+        .bar-demo.alloc .demo-sub { color: var(--accent-dark); }
+        .bar-demo.unalloc { border-left: 5px solid var(--amber); }
+        .bar-demo.gap     { background: var(--amber-bg); border-color: var(--amber); color: var(--amber-dark); text-align: center; }
+
+        /* ── Mock "Assign" button shown on an open shift ── */
+        .rota-assign-btn {
+            display: inline-block; margin-top: 4px; font-size: 10px; font-family: inherit;
+            background: #fff; color: var(--accent); border: 1px solid var(--accent);
+            border-radius: 3px; padding: 1px 8px; line-height: 1.5;
+        }
+
+        /* ── Mock calendar toolbar ── */
+        .mock-titlebar {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+        }
+        .mock-titlebar .mock-title { margin-bottom: 0; }
+        .mock-toolbar {
+            display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;
+            justify-content: space-between;
+            padding: 12px 14px; margin-bottom: 14px;
+            background: #fff; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 11px;
+        }
+        /* Section 1: week label stacked over the Previous / This week / Next row. */
+        .mock-toolbar .tb-nav { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .mock-toolbar .tb-week { font-weight: 700; color: #1d2327; font-size: 14px; }
+        .mock-toolbar .tb-week-btns { display: flex; gap: 6px; }
+        /* Section 2: the week actions and the apply-template controls, side by side. */
+        .mock-toolbar .tb-view-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+        /* Save / Assign stacked vertically, each stretched to equal width. */
+        .mock-toolbar .tb-week-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+        /* Select Template on top, then Apply + Replace on a row beneath it. */
+        .mock-toolbar .tb-apply { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+        .mock-toolbar .tb-apply-row { display: flex; align-items: center; gap: 8px; }
+        .mock-btn {
+            background: #f6f7f7; border: 1px solid #c3c4c7;
+            color: var(--accent); border-radius: 3px; padding: 2px 9px; font-size: 11px;
+            text-align: center; white-space: nowrap;
+        }
+        .mock-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .mock-select {
+            background: #fff; border: 1px solid #8c8f94;
+            color: #2c3338; border-radius: 3px; padding: 2px 20px 2px 8px; font-size: 11px;
+            white-space: nowrap;
+        }
+        .mock-toolbar .tb-replace { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); }
+        .mock-toolbar .tb-check { width: 12px; height: 12px; border: 1px solid #8c8f94; border-radius: 2px; background: #fff; display: inline-block; flex-shrink: 0; }
+
+        /* ── Screenshot placeholder ── */
+        .shot {
+            border: 2px dashed var(--accent); background: var(--accent-bg);
+            border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px;
+            display: flex; gap: 14px; align-items: flex-start; font-size: 14px;
+        }
+        .shot .shot-icon { font-size: 22px; flex-shrink: 0; }
+        .shot .shot-body { line-height: 1.55; }
+        .shot .shot-tag {
+            display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.6px; color: #fff; background: var(--accent);
+            border-radius: 5px; padding: 1px 8px; margin-bottom: 6px;
+        }
+        .shot .shot-body strong { color: var(--accent-dark); }
+
+        /* ── Overlay ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 80; }
+
+        /* ── Responsive ── */
+        @media (max-width: 860px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow-md); }
+            .sidebar.open { transform: translateX(0); }
+            .overlay.visible { display: block; }
+            .hamburger { display: flex; }
+            .main { margin-left: 0; padding: calc(var(--header-height) + 24px) 20px 60px; }
+            h1 { font-size: 28px; } h2 { font-size: 20px; }
+            .screen-mock .mock-body { flex-direction: column; }
+            .screen-mock .mock-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+            /* The WordPress admin mock stays side-by-side: a dark menu column with
+               the white work area beside it, the way the real admin looks. */
+            .screen-mock.wp-mock .mock-body { flex-direction: row; }
+            .screen-mock.wp-mock .mock-sidebar { width: 150px; border-right: none; border-bottom: none; }
+        }
+        @media print {
+            .site-header, .sidebar, .hamburger, .overlay { display: none !important; }
+            .main { margin-left: 0; padding: 20px; max-width: 100%; }
+            .shot { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <button class="hamburger" onclick="toggleNav()" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a href="#" class="logo">
+        <span>📞</span> Trusted <span>Rota Guide</span>
+    </a>
+    <span class="version">v1.7.10 · Telephone Responder Rota</span>
+</header>
+
+<div class="overlay" onclick="toggleNav()"></div>
+
+<nav class="sidebar" id="sidebar">
+    <div class="nav-section">
+        <div class="nav-section-title">Getting Started</div>
+        <a href="#overview" class="nav-link active">Overview</a>
+        <a href="#concepts" class="nav-link">How the Pieces Fit</a>
+        <a href="#menu" class="nav-link">Finding the Rota</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Setting Up Members</div>
+        <a href="#member-responder" class="nav-link">Make a Telephone Responder</a>
+        <a href="#member-12th" class="nav-link">Make a 12th Stepper</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Shift Templates</div>
+        <a href="#templates-about" class="nav-link">About Templates</a>
+        <a href="#template-create" class="nav-link">Creating a Template</a>
+        <a href="#template-format" class="nav-link">The Shift Line Format</a>
+        <a href="#template-from-week" class="nav-link">Save a Week as a Template</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Rota Calendar</div>
+        <a href="#calendar-overview" class="nav-link">The Calendar at a Glance</a>
+        <a href="#calendar-weeks" class="nav-link">Moving Between Weeks</a>
+        <a href="#calendar-apply" class="nav-link">Applying a Template</a>
+        <a href="#calendar-shifts" class="nav-link">Adding &amp; Removing Shifts</a>
+        <a href="#calendar-assign" class="nav-link">Assigning a Responder</a>
+        <a href="#calendar-bulk" class="nav-link">Assign One to Many</a>
+        <a href="#calendar-clear" class="nav-link">Clearing a Week</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Requests to Contact</div>
+        <a href="#contact-overview" class="nav-link">What a Contact Request Is</a>
+        <a href="#contact-requests" class="nav-link">Handling Call Requests</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Reference</div>
+        <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
+        <a href="#screenshots" class="nav-link">Screenshots Needed</a>
+    </div>
+</nav>
+
+<main class="main">
+
+    <!-- ── Overview ── -->
+    <section id="overview">
+        <h1><span class="emoji">📞</span> Trusted Telephone Rota Guide</h1>
+        <p class="subtitle">
+            A step-by-step guide to running the telephone responder rota — building weekly shift
+            templates, filling the calendar, assigning responders, and handling callers who ask to be
+            contacted.
+        </p>
+
+        <div class="card">
+            <h3>What Trusted does</h3>
+            <p>Trusted adds a <strong>Telephone Rota</strong> to the WordPress admin. It is a planner for
+            the telephone helpline: you build reusable <strong>weekly shift patterns</strong>, apply them
+            to any week, and put a <strong>telephone responder</strong> on each shift from a calendar view.</p>
+            <p style="margin-bottom:0;">Trusted does not have its own list of people. Everyone you can place
+            on a shift comes from the shared <strong>member records</strong> — specifically, the members who
+            have been marked as telephone responders. So the first job, before any rota work, is making sure
+            the right people are flagged correctly. That is covered in <a href="#member-responder">Setting Up Members</a>.</p>
+        </div>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Personal data.</strong> A responder's mobile number and email appear on their shift
+            so whoever is coordinating can reach them. These are private contact details — the Scrutiny plugin
+            logs access to them. Use them only for rota purposes and never share them outside the system.</div>
+        </div>
+    </section>
+
+    <!-- ── Concepts ── -->
+    <section id="concepts">
+        <h2>How the Pieces Fit Together</h2>
+        <p>Three different things are easy to confuse. They are set independently on a member's record, and a
+        person can be any combination of them.</p>
+
+        <table class="status-table">
+            <thead><tr><th>Role</th><th>What it means</th><th>Where it is used</th></tr></thead>
+            <tbody>
+            <tr>
+                <td><strong>Telephone&nbsp;Responder</strong></td>
+                <td>Available to take a turn answering the helpline. These are the only people who can be put
+                on the Trusted rota.</td>
+                <td>The <strong>Trusted</strong> rota calendar and templates.</td>
+            </tr>
+            <tr>
+                <td><strong>12th&nbsp;Stepper</strong></td>
+                <td>Available to be contacted directly for a 12th-step call. Has an <em>area</em> they cover and
+                the <em>forms of contact</em> they accept.</td>
+                <td>The public finder, and the <strong>Call Requests</strong> list (see <a href="#contact-requests">Requests to Contact</a>).</td>
+            </tr>
+            <tr>
+                <td><strong>GSR / Officer</strong></td>
+                <td>Service positions in the intergroup. Unrelated to the rota.</td>
+                <td>The intergroup admin — not Trusted.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>A responder answering the phone often <em>also</em> needs to reach a 12th stepper on the
+            caller's behalf — so the two roles work together, but they are still ticked separately. Tick both
+            on a member who does both jobs.</div>
+        </div>
+    </section>
+
+    <!-- ── Finding the rota ── -->
+    <section id="menu">
+        <h2>Finding the Rota</h2>
+        <p>Log in to the WordPress admin (usually your site address followed by <code>/wp-admin</code>). In the
+        left-hand sidebar, look for the <strong>Trusted</strong> menu — it has a telephone icon.</p>
+
+        <div class="screen-mock wp-mock">
+            <div class="mock-bar">
+                <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                <div class="url">https://aa-bristol.org/wp-admin/</div>
+            </div>
+            <div class="mock-body">
+                <div class="mock-sidebar wp-side">
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-dashboard"></span> Dashboard</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-post"></span> Posts</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-media"></span> Media</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-page"></span> Pages</div>
+                    <div class="mock-menu-sep"></div>
+                    <div class="mock-menu-item parent"><span class="mock-ico dashicons dashicons-phone"></span> Trusted</div>
+                    <div class="mock-submenu">
+                        <div class="mock-sub-item active">Rota Calendar</div>
+                        <div class="mock-sub-item">Shift Templates</div>
+                    </div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-groups"></span> Intergroup</div>
+                    <div class="mock-menu-sep"></div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-plugins"></span> Plugins</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-users"></span> Users</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-tools"></span> Tools</div>
+                    <div class="mock-menu-item"><span class="mock-ico dashicons dashicons-admin-settings"></span> Settings</div>
+                </div>
+                <div class="mock-content">
+                    <div class="mock-title">Telephone Rota</div>
+                    <p style="font-size:13px;color:#6B6860;margin:0;">The Rota Calendar opens here. Use
+                    <strong>Shift Templates</strong> to build reusable weekly patterns, and
+                    <strong>Members</strong> (under the Intergroup menu) to mark who is a responder.</p>
+                </div>
+            </div>
+        </div>
+
+        <table class="status-table">
+            <thead><tr><th>Sub-page</th><th>What it is for</th></tr></thead>
+            <tbody>
+            <tr><td><strong>Rota Calendar</strong></td><td>The week-by-week planner. Add shifts and assign responders here.</td></tr>
+            <tr><td><strong>Shift Templates</strong></td><td>Reusable weekly shift patterns you can apply to any week.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>No <strong>Trusted</strong> menu? Your account may not have permission, or the Unity plugin
+            (which supplies the members) may be inactive. See <a href="#troubleshooting">Troubleshooting</a>.</div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- SETTING UP MEMBERS                                            -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+
+    <section id="member-responder">
+        <h2>Making a Member a Telephone Responder</h2>
+
+        <div class="path">
+            <span class="crumb">Intergroup</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Members</span>
+            <span class="sep">›</span>
+            <span class="crumb final">[Member name]</span>
+        </div>
+
+        <p>A member only appears in the rota's "assign" dropdown once they are flagged as a telephone responder.
+        This is the single most important set-up step — if someone is missing from the calendar, this is almost
+        always why.</p>
+
+        <ol class="steps">
+            <li>In the sidebar, go to <strong>Intergroup › Members</strong>.</li>
+            <li>To add a brand-new person, click <strong>Add New</strong> and fill in their
+                <strong>Anonymous Name</strong> first. To update someone who already exists, click their name
+                in the list to open their record.</li>
+            <li>Open the <strong>Service</strong> tab on the member record.</li>
+            <li>Switch <strong>Telephone Responder</strong> to <span class="badge badge-on">On</span>.</li>
+            <li>Open the <strong>About</strong> tab and fill in the <strong>Mobile Number</strong> and
+                <strong>Personal Email</strong> — both are <strong>required</strong>. These are what the rota shows
+                so the responder can be reached on their shift.</li>
+            <li>Click <strong>Update</strong> (or <strong>Publish</strong> for a new member).</li>
+        </ol>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                The member record's <strong>Service</strong> tab, with the <strong>Telephone Responder</strong>
+                toggle visible and switched on. Please blur or use a test member — do not capture a real name.
+            </div>
+        </div>
+
+        <table class="field-table">
+            <thead><tr><th>Field</th><th>Why it matters for the rota</th></tr></thead>
+            <tbody>
+            <tr><td><span class="field-name">Telephone Responder</span><span class="req">*</span></td><td>Must be <strong>On</strong>. Without it the member never appears in the rota dropdown.</td></tr>
+            <tr><td><span class="field-name">Anonymous Name</span><span class="req">*</span></td><td>This is the name shown on the shift card. Must be unique across all members.</td></tr>
+            <tr><td><span class="field-name">Mobile Number</span><span class="req">*</span></td><td>Required. Shown beneath the name on the shift so the coordinator can call them. Private — logged by Scrutiny.</td></tr>
+            <tr><td><span class="field-name">Personal Email</span><span class="req">*</span></td><td>Required. Shown beside the number on the shift. Private — logged by Scrutiny.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="callout success">
+            <span class="callout-icon">✓</span>
+            <div><strong>That's all the rota needs.</strong> As soon as the record is saved, click
+            <strong>⟳ Refresh</strong> on the Rota Calendar (top of the page) and the member will be in the
+            assign dropdown.</div>
+        </div>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Removing someone.</strong> Switching <strong>Telephone Responder</strong> back to
+            <span class="badge badge-off">Off</span> stops them being offered for <em>future</em> shifts. It
+            does <strong>not</strong> remove them from shifts they are already on — open those shifts and remove
+            them by hand if needed.</div>
+        </div>
+    </section>
+
+    <section id="member-12th">
+        <h2>Making a Member a 12th Stepper</h2>
+
+        <div class="path">
+            <span class="crumb">Intergroup</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Members</span>
+            <span class="sep">›</span>
+            <span class="crumb final">[Member name]</span>
+        </div>
+
+        <p>The 12th-stepper flag is separate from the responder flag. A 12th stepper is someone who agrees to be
+        contacted for a 12th-step call. They are the people who show up on the public finder and in the
+        <a href="#contact-requests">Call Requests</a> list. Set this up if you want a member to receive
+        callback requests.</p>
+
+        <ol class="steps">
+            <li>Go to <strong>Intergroup › Members</strong> and open (or add) the member record.</li>
+            <li>Open the <strong>Home</strong> tab.</li>
+            <li>Set the member's <strong>Home Group</strong> (<strong>required</strong>). The
+                <strong>12th Stepper</strong> switch stays hidden until a home group is set.</li>
+            <li>Switch <strong>12th Stepper</strong> to <span class="badge badge-on">On</span>.</li>
+            <li>Set the <strong>Area</strong> (<strong>required</strong>) — the part of the region they can cover
+                for a 12th-step call. The finder uses this to match a caller to the nearest available member.</li>
+            <li>Tick the <strong>Accepts</strong> options (<strong>required</strong> — at least one) — the callers this member is willing to take
+                12th-step calls from. Tick <strong>Male</strong> to accept male callers and
+                <strong>Female</strong> to accept female callers. A third option, <strong>Non-binary</strong>,
+                is only set with the 12th stepper's permission. Leave any they do not want unticked.</li>
+            <li>On the <strong>About</strong> tab, make sure the <strong>Mobile Number</strong> /
+                <strong>Personal Email</strong> the member wants to be reached on are present.</li>
+            <li>Click <strong>Update</strong>.</li>
+        </ol>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                The member record's <strong>Home</strong> tab showing the <strong>12th Stepper</strong> toggle,
+                the <strong>Area</strong> field, and the <strong>Accepts</strong> checkboxes. Use a test member.
+            </div>
+        </div>
+
+        <table class="field-table">
+            <thead><tr><th>Field</th><th>What to enter</th></tr></thead>
+            <tbody>
+            <tr><td><span class="field-name">Home Group</span><span class="req">*</span></td><td>Required. The member's home group. A 12th stepper must have a home group — the <strong>12th Stepper</strong> switch is hidden until one is set.</td></tr>
+            <tr><td><span class="field-name">12th Stepper</span><span class="req">*</span></td><td>Switch <strong>On</strong> to make the member available for 12th-step calls.</td></tr>
+            <tr><td><span class="field-name">Area</span><span class="req">*</span></td><td>Required. The geographic area the member covers. This can be an <strong>area name</strong> (e.g. <code>Kingswood</code>) <em>or</em> a <strong>postcode</strong> (e.g. <code>BS15</code>). Cover more than one place by separating them with a <code>|</code> (pipe), e.g. <code>Kingswood|Hanham</code> or <code>BS15|BS5</code>. Each is matched against the caller's location and the nearest one is used to find the closest available member.</td></tr>
+            <tr><td><span class="field-name">Accepts</span><span class="req">*</span></td><td>Required (at least one). The callers the member will take 12th-step calls from. Tick <strong>Male</strong> for male callers and <strong>Female</strong> for female callers. The third option, <strong>Non-binary</strong>, is only set with the 12th stepper's permission. The finder matches these against the caller's own selection.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>A 12th stepper must have a home group.</strong> Make sure the <strong>Home Group</strong>
+            is set — the <strong>12th Stepper</strong> switch is hidden if not.</div>
+        </div>
+
+        <div class="callout purple">
+            <span class="callout-icon">🔒</span>
+            <div><strong>Consent matters.</strong> Only flag a member as a 12th stepper with their agreement —
+            it makes them contactable by people they have not met. The same goes for the contact details on
+            their record.</div>
+        </div>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div><strong>Doing both jobs?</strong> Many people answer the phone <em>and</em> take 12th-step
+            calls. Just turn on both toggles — <strong>Telephone Responder</strong> on the Service tab and
+            <strong>12th Stepper</strong> on the Home tab — and save once.</div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- TEMPLATES                                                     -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+
+    <section id="templates-about">
+        <h2>About Shift Templates</h2>
+        <p>A <strong>template</strong> is a reusable weekly pattern of shifts — for example "three desks a day,
+        Monday to Sunday". Build it once, then apply it to any week to create that week's shifts in a couple of
+        clicks, instead of typing every shift out by hand.</p>
+
+        <div class="card">
+            <h3>You don't have to use templates</h3>
+            <p style="margin-bottom:0;">Templates are a time-saver, not a requirement. You can always add shifts
+            straight onto a week in the calendar (see <a href="#calendar-shifts">Adding &amp; Removing Shifts</a>).
+            Templates simply save you repeating the same pattern every week.</p>
+        </div>
+    </section>
+
+    <section id="template-create">
+        <h2>Creating a Template</h2>
+
+        <div class="path">
+            <span class="crumb">Trusted</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Shift Templates</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Add Template</span>
+        </div>
+
+        <ol class="steps">
+            <li>Go to <strong>Trusted › Shift Templates</strong> and click <strong>Add Template</strong>.</li>
+            <li>Give the template a clear <strong>title</strong> — for example <code>Standard week</code> or
+                <code>Bank holiday cover</code>. You'll pick it by this name later.</li>
+            <li>You'll see a box for each day, <strong>Monday</strong> to <strong>Sunday</strong>. In each day,
+                type one shift per line (the exact format is explained
+                <a href="#template-format">below</a>). Leave a day empty for no shifts that day.</li>
+            <li>Click <strong>Publish</strong>.</li>
+        </ol>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                The <strong>Add Shift Template</strong> editor showing the title field and the seven day boxes
+                (Monday–Sunday) with a couple of example shift lines filled in.
+            </div>
+        </div>
+
+    </section>
+
+    <section id="template-format">
+        <h2>The Shift Line Format</h2>
+        <p>Each line in a day's box describes one shift. The pattern is:</p>
+
+        <pre><code>HH:MM-HH:MM | Shift name | Member</code></pre>
+
+        <p>Times come first, then an optional name, then an optional member — separated by the
+        <code>|</code> (pipe) character. For example:</p>
+
+        <pre><code>09:00-13:00 | Reception | John D
+13:00-17:00 | Reception
+17:00-21:00 | Evening on-call</code></pre>
+
+        <table class="field-table">
+            <thead><tr><th>Part</th><th>Rules</th></tr></thead>
+            <tbody>
+            <tr>
+                <td><span class="field-name">Times</span><span class="req">*</span></td>
+                <td>24-hour clock, from <code>00:00</code> to <code>24:00</code>. Use <code>00:00</code> for the
+                start of the day and <code>24:00</code> for the very end — so a whole day is
+                <code>00:00-24:00</code>.</td>
+            </tr>
+            <tr>
+                <td><span class="field-name">Shift name</span><span class="req">*</span></td>
+                <td>A short label such as <code>Reception</code> or <code>Evening on-call</code>. <strong>Required</strong>
+                — a line with no name will not save.</td>
+            </tr>
+            <tr>
+                <td><span class="field-name">Member</span></td>
+                <td>Optional. The member's <em>anonymous name</em>. If you name someone they must be an existing
+                <strong>telephone responder</strong> or the template won't save — and they are
+                <strong>assigned automatically</strong> when the template is applied.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Naming a member who isn't a responder.</strong> If a line names someone who is not flagged
+            as a telephone responder, the whole template refuses to save. Either flag them first
+            (see <a href="#member-responder">Make a Telephone Responder</a>) or leave the member off the line and
+            assign them later in the calendar.</div>
+        </div>
+    </section>
+
+    <section id="template-from-week">
+        <h2>Save a Week as a Template</h2>
+
+        <p>If you have already built a good week by hand in the calendar, you can turn it into a reusable
+        template without retyping it.</p>
+
+        <ol class="steps">
+            <li>On the <strong>Rota Calendar</strong>, navigate to the week you want to capture.</li>
+            <li>Click <strong>Save week as template</strong>.</li>
+            <li>Type a <strong>template name</strong>.</li>
+            <li>Leave <strong>Include assigned members</strong> ticked to carry the people across too, or untick
+                it to save just the shift pattern (times and names) with no one assigned.</li>
+            <li>Click <strong>Save</strong>. The new template appears in the dropdown immediately.</li>
+        </ol>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Including members only works for people who are still telephone responders at the moment you
+            save. It's a handy way to clone a "typical week" and reuse it going forward.</div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- CALENDAR                                                      -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+
+    <section id="calendar-overview">
+        <h2>The Calendar at a Glance</h2>
+
+        <div class="path">
+            <span class="crumb">Trusted</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Rota Calendar</span>
+        </div>
+
+        <p>The calendar shows one week at a time, as seven day columns (Monday to Sunday). Each column lists its
+        shifts in time order. Every shift has a coloured bar down its left edge — <strong>blue</strong> when a
+        responder is assigned, <strong>yellow</strong> when it still needs someone. A filled shift shows the
+        responder's name with their phone and email.</p>
+
+        <div class="screen-mock">
+            <div class="mock-bar">
+                <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                <div class="url">https://aa-bristol.org/wp-admin/admin.php?page=trusted</div>
+            </div>
+            <div class="mock-content" style="padding:16px;">
+                <div class="mock-titlebar">
+                    <div class="mock-title">Telephone Rota</div>
+                    <span class="mock-btn">⟳ Refresh</span>
+                </div>
+                <div class="mock-toolbar">
+                    <span class="tb-nav">
+                        <span class="tb-week">3 – 9 Mar</span>
+                        <span class="tb-week-btns">
+                            <span class="mock-btn">← Previous</span>
+                            <span class="mock-btn">This week</span>
+                            <span class="mock-btn">Next →</span>
+                        </span>
+                    </span>
+                    <span class="tb-view-actions">
+                        <span class="tb-week-actions">
+                            <span class="mock-btn">Save week as template</span>
+                            <span class="mock-btn">Assign member to shifts</span>
+                        </span>
+                        <span class="tb-apply">
+                            <span class="mock-select">Select Template ▾</span>
+                            <span class="tb-apply-row">
+                                <span class="mock-btn primary">Apply template</span>
+                                <label class="tb-replace"><span class="tb-check"></span> Replace existing slots this week</label>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="rota-mock">
+                    <div class="rota-day">
+                        <div class="rota-day-head">Mon <span>3 Mar</span></div>
+                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">Sarah T.</div><div class="meta">07700 900123 · sarah@…</div></div>
+                        <div class="rota-slot open"><span class="t">13:00–17:00</span><div class="l">Reception</div><span class="rota-assign-btn">Assign</span></div>
+                    </div>
+                    <div class="rota-day">
+                        <div class="rota-day-head">Tue <span>4 Mar</span></div>
+                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">James R.</div><div class="meta">07700 900456 · james@…</div></div>
+                        <div class="rota-gap">Gap 13:00–24:00</div>
+                    </div>
+                    <div class="rota-day">
+                        <div class="rota-day-head">Wed <span>5 Mar</span></div>
+                        <div class="rota-gap">Gap 00:00–24:00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table class="status-table">
+            <thead><tr><th>You'll see</th><th>Meaning</th></tr></thead>
+            <tbody>
+            <tr><td><span class="bar-demo alloc"><strong>09:00–13:00</strong> Reception<br><span class="demo-sub">Sarah T.</span></span></td><td><strong>Filled shift</strong> — a <strong>blue</strong> bar down the left edge. Someone is assigned; their name, phone and email are shown, with a × to remove them.</td></tr>
+            <tr><td><span class="bar-demo unalloc"><strong>13:00–17:00</strong> Reception<br><span class="demo-sub">Assign</span></span></td><td><strong>Open shift</strong> — a <strong>yellow</strong> bar down the left edge means no one is assigned yet. Has an <strong>Assign</strong> button.</td></tr>
+            <tr><td><span class="bar-demo gap">Gap 13:00–24:00</span></td><td><strong>Gap</strong> — a block shaded <strong>yellow all over</strong>. A stretch of the day with no shift at all. Double-click it to add a shift covering that time.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                A real (or test-data) <strong>Rota Calendar</strong> for a full week, showing the toolbar at the
+                top and a mix of filled and open shifts. Blur any genuine phone numbers / emails.
+            </div>
+        </div>
+    </section>
+
+    <section id="calendar-weeks">
+        <h2>Moving Between Weeks</h2>
+        <p>The toolbar at the top of the calendar shows the dates of the week you are viewing, with three buttons
+        beneath:</p>
+        <ul>
+            <li><strong>← Previous</strong> — jump back one week.</li>
+            <li><strong>This week</strong> — return to the current week.</li>
+            <li><strong>Next →</strong> — jump forward one week.</li>
+        </ul>
+        <p>There is also a <strong>⟳ Refresh</strong> button next to the "Telephone Rota" title. Use it to reload
+        the latest data — for example after you've just flagged a new responder and want them to appear in the
+        dropdown.</p>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>The calendar remembers the last week you looked at, so when you come back it reopens on that week
+            rather than snapping to today.</div>
+        </div>
+    </section>
+
+    <section id="calendar-apply">
+        <h2>Applying a Template to a Week</h2>
+
+        <p>This fills a week from one of your saved templates in one step.</p>
+
+        <ol class="steps">
+            <li>Navigate to the week you want to fill.</li>
+            <li>In the toolbar, pick a template from the <strong>Select Template</strong> dropdown.</li>
+            <li>Click <strong>Apply template</strong>. The week's shifts are created, and any members named in the
+                template are assigned automatically.</li>
+        </ol>
+
+        <div class="callout success">
+            <span class="callout-icon">✓</span>
+            <div><strong>Applying is safe by default.</strong> Shifts that already exist on a date and time are
+            left exactly as they are — names and assignments kept. Only new shifts are added, so re-applying a
+            template never overwrites or duplicates what's already there.</div>
+        </div>
+
+        <div class="callout danger">
+            <span class="callout-icon">🗑️</span>
+            <div><strong>Replace existing slots this week.</strong> Tick this box <em>before</em> clicking Apply
+            only when you want to wipe the whole week first and rebuild it from the template. This removes the
+            week's existing shifts and their assignments. Leave it unticked for the normal, safe behaviour.</div>
+        </div>
+    </section>
+
+    <section id="calendar-shifts">
+        <h2>Adding &amp; Removing Shifts</h2>
+
+        <h3>Add a shift</h3>
+        <ol class="steps">
+            <li>At the bottom of a day's column, click <strong>Add Shift</strong>. (Or double-click a
+                <strong>Gap</strong> marker to start with that gap's times pre-filled.)</li>
+            <li>Enter a <strong>Shift name</strong> (required).</li>
+            <li>Set the <strong>Start</strong> and <strong>End</strong> times as <code>HH:MM</code> (anything from
+                <code>00:00</code> to <code>24:00</code>).</li>
+            <li>Optionally pick a <strong>Member</strong> to assign straight away — or leave it blank and assign
+                later.</li>
+            <li>Click <strong>Save</strong>. The shift drops into the column in time order.</li>
+        </ol>
+
+        <h3>Remove a shift</h3>
+        <p>Click the <strong>×</strong> on a shift's time row, then confirm. </p>
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div>You can only delete an <strong>empty</strong> shift. While someone is assigned, the × is hidden —
+            remove the person first (see below), then the shift can be deleted.</div>
+        </div>
+    </section>
+
+    <section id="calendar-assign">
+        <h2>Assigning a Responder to a Shift</h2>
+
+        <p>Each shift holds <strong>one</strong> responder.</p>
+
+        <ol class="steps">
+            <li>On an open shift, click <strong>Assign</strong>.</li>
+            <li>Choose a person from the <strong>— Select a member —</strong> dropdown. The list contains only
+                telephone responders, sorted by name.</li>
+            <li>Click <strong>Assign</strong>. Their name, phone and email now show on the shift.</li>
+        </ol>
+
+        <h3>Swapping who's on a shift</h3>
+        <ol class="steps">
+            <li>Click the <strong>×</strong> next to the current person's name and confirm — the shift becomes
+                open again.</li>
+            <li>Click <strong>Assign</strong> and pick the replacement.</li>
+        </ol>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>The same responder can be on as many different shifts and days as you like — each shift is managed
+            on its own. Assigning one shift never affects another.</div>
+        </div>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Someone missing from the dropdown?</strong> They are not flagged as a telephone responder.
+            Set them up (see <a href="#member-responder">Make a Telephone Responder</a>), then click
+            <strong>⟳ Refresh</strong>.</div>
+        </div>
+    </section>
+
+    <section id="calendar-bulk">
+        <h2>Assigning One Member to Many Shifts</h2>
+
+        <p>When the same person is covering several shifts — say a whole weekend — assign them in one go instead of
+        shift by shift.</p>
+
+        <ol class="steps">
+            <li>In the toolbar, click <strong>Assign member to shifts</strong>. The calendar switches to selection
+                mode and a bar appears at the top.</li>
+            <li>In the bar, pick the person from the <strong>— Select a member —</strong> dropdown.</li>
+            <li><strong>Tick</strong> each open shift you want to give them. (Click anywhere on an open shift card
+                to tick it.) The bar shows a running count of how many are selected.</li>
+            <li>Click <strong>Assign</strong>.</li>
+            <li>Click <strong>Cancel</strong> to leave selection mode at any time.</li>
+        </ol>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                The calendar in <strong>bulk-assign</strong> mode — the blue selection bar with the member
+                dropdown and "<em>N shifts selected</em>" count, plus a few ticked open shifts.
+            </div>
+        </div>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Already-filled shifts appear dimmed and can't be ticked — bulk assign only fills empty shifts. If
+            any selected shift was filled by someone else in the meantime, it's quietly skipped and you're told how
+            many were left unchanged.</div>
+        </div>
+    </section>
+
+    <section id="calendar-clear">
+        <h2>Clearing a Week</h2>
+
+        <p>Two week-level clean-up buttons appear in the toolbar, depending on the state of the week. Both ask you
+        to confirm and cannot be undone.</p>
+
+        <table class="status-table">
+            <thead><tr><th>Button</th><th>When it shows</th><th>What it does</th></tr></thead>
+            <tbody>
+            <tr>
+                <td><strong>Clear week</strong></td>
+                <td>The week has shifts but <em>no one</em> is assigned yet.</td>
+                <td>Deletes every shift for the week — a clean slate before you rebuild it.</td>
+            </tr>
+            <tr>
+                <td><strong>Delete week's assignments</strong></td>
+                <td>At least one person is assigned somewhere in the week.</td>
+                <td>Removes <em>everybody</em> from their shifts but keeps the shifts themselves, ready to be
+                re-staffed.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div>These act on the <strong>whole visible week</strong>. To change a single shift, use the per-shift
+            × instead.</div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- REQUESTS TO CONTACT                                           -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+
+    <section id="contact-overview">
+        <h2>What a "Request to Contact" Is</h2>
+
+        <p>When someone uses the public finder out of hours and asks to be called back, the system records a
+        <strong>call request</strong>: a note that a particular <strong>12th stepper</strong> should phone the
+        caller. These requests are the bridge between a member of the public reaching out and a 12th stepper
+        making contact.</p>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Call requests are about <strong>12th steppers</strong>, not the telephone rota. A person only
+            appears here if they've been flagged as a 12th stepper — see
+            <a href="#member-12th">Make a 12th Stepper</a>.</div>
+        </div>
+    </section>
+
+    <section id="contact-requests">
+        <h2>Handling Call Requests</h2>
+
+        <div class="path">
+            <span class="crumb">Reach</span>
+            <span class="sep">›</span>
+            <span class="crumb final">Call requests</span>
+        </div>
+
+        <p>Open call requests are listed under the <strong>Reach</strong> menu, on the <strong>Call requests</strong>
+        page. Each row is one caller waiting to be phoned back by the listed 12th stepper.</p>
+
+        <div class="screen-mock">
+            <div class="mock-bar">
+                <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                <div class="url">https://aa-bristol.org/wp-admin/admin.php?page=reach-call-requests</div>
+            </div>
+            <div class="mock-content">
+                <div class="mock-title">Call requests</div>
+                <table class="status-table" style="margin-bottom:0;">
+                    <thead><tr><th>When</th><th>12th Stepper</th><th>Caller</th><th>Phone</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    <tr><td>2026-06-26 21:14</td><td>Sarah T. · North</td><td>Chris</td><td>07700 900789</td><td>Prefers evening call</td></tr>
+                    <tr><td>2026-06-26 19:02</td><td>James R. · Central</td><td>Pat</td><td>07700 900222</td><td>—</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <h3>Working a request</h3>
+        <ol class="steps">
+            <li>Go to <strong>Reach › Call requests</strong>.</li>
+            <li>Read the <strong>12th Stepper</strong>, <strong>Caller</strong>, <strong>Phone</strong> and any
+                <strong>Notes</strong>. The phone number is a clickable link.</li>
+            <li>Make sure the request is actioned — i.e. the 12th stepper is told to call the person back (your
+                intergroup's usual process).</li>
+            <li>Once it's been dealt with, click <strong>Delete</strong> on that row to clear it from the list.</li>
+        </ol>
+
+        <div class="shot">
+            <span class="shot-icon">📷</span>
+            <div class="shot-body">
+                <span class="shot-tag">Screenshot needed</span><br>
+                The <strong>Call requests</strong> list with a couple of example rows and the per-row
+                <strong>Delete</strong> button. Use test data — these rows contain a real caller's name and number.
+            </div>
+        </div>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>This is sensitive data.</strong> The list holds a caller's name and phone number. Only
+            people with permission to view personal data can open it, access is logged, and requests are
+            automatically removed after a retention period. Delete each one as soon as it has been actioned —
+            don't leave them sitting.</div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- REFERENCE                                                     -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+
+    <section id="troubleshooting">
+        <h2>Troubleshooting</h2>
+
+        <div class="card">
+            <h3>A responder isn't in the assign dropdown</h3>
+            <p>The dropdown only lists members flagged as telephone responders. Open the member at
+            <strong>Intergroup › Members</strong>, go to the <strong>Service</strong> tab, switch
+            <strong>Telephone Responder</strong> on, and save.</p>
+            <p style="margin-bottom:0;">Back on the calendar, click <strong>⟳ Refresh</strong> — the dropdown
+            reloads and they'll appear.</p>
+        </div>
+
+        <div class="card">
+            <h3>A template won't save</h3>
+            <p>Two common causes: a shift line with <strong>no name</strong>, or a line that <strong>names a
+            member who isn't a telephone responder</strong>. Add a name to every line, and either flag the named
+            person as a responder first or remove them from the line.</p>
+            <p style="margin-bottom:0;">Check times are written <code>HH:MM-HH:MM</code> between <code>00:00</code>
+            and <code>24:00</code>.</p>
+        </div>
+
+        <div class="card">
+            <h3>I can't delete a shift</h3>
+            <p style="margin-bottom:0;">A shift with someone assigned hides its × on purpose. Remove the person
+            first (× next to their name), then the shift's × reappears.</p>
+        </div>
+
+        <div class="card">
+            <h3>Applying a template didn't change anything</h3>
+            <p style="margin-bottom:0;">Applying is non-destructive — it only adds shifts that don't already
+            exist. If the week already had those shifts, nothing visibly changes. To rebuild the week from
+            scratch, tick <strong>Replace existing slots this week</strong> before clicking Apply.</p>
+        </div>
+
+        <div class="card">
+            <h3>The Trusted menu is missing entirely</h3>
+            <p style="margin-bottom:0;">Either your account lacks the required permission, or the <strong>Unity</strong>
+            plugin (which supplies the member list) is inactive — Trusted shows an admin notice and does nothing
+            without it. Ask your site administrator to check both.</p>
+        </div>
+
+        <div class="card">
+            <h3>A member's name on a shift is out of date</h3>
+            <p style="margin-bottom:0;">Shift cards show the member's current anonymous name. Update it on the
+            member record at <strong>Intergroup › Members</strong>, save, then <strong>⟳ Refresh</strong> the
+            calendar.</p>
+        </div>
+    </section>
+
+    <section id="screenshots">
+        <h2>Screenshots Needed</h2>
+        <p>This guide uses placeholder boxes (marked <span class="badge badge-tip">📷 Screenshot needed</span>)
+        where a real screen grab would help. Please capture the following from a live site — using <strong>test
+        data</strong> wherever a real name, phone number or email would otherwise appear — and we'll drop them in:</p>
+
+        <ol>
+            <li>Member record — <strong>Service</strong> tab with the <strong>Telephone Responder</strong> toggle on.
+                <span style="color:var(--text-secondary);">(§ Make a Telephone Responder)</span></li>
+            <li>Member record — <strong>Home</strong> tab with <strong>12th Stepper</strong>, <strong>Area</strong>
+                and <strong>Accepts</strong>. <span style="color:var(--text-secondary);">(§ Make a 12th Stepper)</span></li>
+            <li>The <strong>Add Shift Template</strong> editor with the seven day boxes and example lines.
+                <span style="color:var(--text-secondary);">(§ Creating a Template)</span></li>
+            <li>A full-week <strong>Rota Calendar</strong> with the toolbar and a mix of filled / open shifts.
+                <span style="color:var(--text-secondary);">(§ The Calendar at a Glance)</span></li>
+            <li>The calendar in <strong>bulk-assign</strong> mode (selection bar + ticked shifts).
+                <span style="color:var(--text-secondary);">(§ Assign One to Many)</span></li>
+            <li>The <strong>Call requests</strong> list with the per-row Delete button.
+                <span style="color:var(--text-secondary);">(§ Handling Call Requests)</span></li>
+        </ol>
+
+        <div class="callout purple">
+            <span class="callout-icon">🔒</span>
+            <div>When grabbing any screen that shows members or callers, blur or use placeholder data for
+            anonymous names, phone numbers and emails before sharing the image.</div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function toggleNav() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.overlay').classList.toggle('visible');
+    }
+
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    function updateActiveLink() {
+        let current = '';
+        const scrollY = window.scrollY + 100;
+        sections.forEach(s => { if (s.offsetTop <= scrollY) current = s.getAttribute('id'); });
+        navLinks.forEach(l => {
+            l.classList.remove('active');
+            if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+        });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    updateActiveLink();
+</script>
+
+</body>
+</html>
