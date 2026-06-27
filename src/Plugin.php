@@ -7,6 +7,7 @@ namespace Trusted;
 use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
 use Trusted\Admin\DeveloperPage;
+use Trusted\Admin\HelpPage;
 use Trusted\Http\RestController;
 use Trusted\Http\SignupController;
 use Trusted\Template\TemplateFields;
@@ -78,6 +79,9 @@ final class Plugin
         add_action('admin_menu', [$developerPage, 'registerMenu']);
         add_action('admin_post_trusted_delete_week', [$developerPage, 'handleDeleteWeek']);
         add_action('admin_post_trusted_clear_all', [$developerPage, 'handleClearAll']);
+
+        // Help submenu — late priority so it always appears last in the menu.
+        add_action('admin_menu', [new HelpPage(), 'register'], 999);
 
         add_action('rest_api_init', function () use ($container): void {
             $container->get(RestController::class)->registerRoutes();
