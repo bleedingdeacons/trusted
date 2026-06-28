@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trusted — Telephone Rota Guide</title>
+    <title>Telephone Rota Guide</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="/wp-includes/css/dashicons.min.css" rel="stylesheet">
     <style>
@@ -387,6 +387,15 @@
             display: block; background: #fff; border: 1px solid #8c8f94;
             border-radius: 4px; height: 30px; width: 100%;
         }
+        /* Day "shift" textareas in the template editor mock. */
+        .screen-mock .acf-shifts {
+            display: block; background: #fff; border: 1px solid #8c8f94;
+            border-radius: 4px; width: 100%; box-sizing: border-box;
+            padding: 6px 8px; min-height: 52px;
+            font-family: 'JetBrains Mono', monospace; font-size: 11px;
+            color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap;
+        }
+        .screen-mock .acf-shifts-empty { min-height: 52px; }
         .screen-mock .acf-toggle {
             display: inline-block; width: 34px; height: 18px; border-radius: 10px;
             background: #c3c4c7; position: relative;
@@ -442,7 +451,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <a href="#" class="logo">
-        Trusted <span>Guide</span>
+        Telephone <span>Guide</span>
     </a>
     <span class="version">v1.7.13 · Telephone Responder Rota</span>
 </header>
@@ -502,10 +511,10 @@
         </p>
 
         <div class="card">
-            <h3>What Trusted does</h3>
-            <p>Trusted adds a <strong>Telephone Rota</strong> to the WordPress admin. It is a planner for
-            the telephone helpline: you build reusable <strong>weekly shift patterns</strong>, apply them
-            to any week, and put a <strong>telephone responder</strong> on each shift from a calendar view.</p>
+            <h3>What is Trusted?</h3>
+            <p>Trusted is a planner for the telephone helpline: you build reusable
+            <strong>weekly shift patterns</strong>, apply them to any week, and put a
+            <strong>telephone responder</strong> on each shift from a calendar view.</p>
             <p style="margin-bottom:0;">Trusted does not have its own list of people. Everyone you can place
             on a shift comes from the shared <strong>member records</strong> — specifically, the members who
             have been marked as telephone responders. So the first job, before any rota work, is making sure
@@ -856,12 +865,36 @@
             <li>Click <strong>Publish</strong>.</li>
         </ol>
 
-        <div class="shot">
-            <span class="shot-icon">📷</span>
-            <div class="shot-body">
-                <span class="shot-tag">Screenshot needed</span><br>
-                The <strong>Add Shift Template</strong> editor showing the title field and the seven day boxes
-                (Monday–Sunday) with a couple of example shift lines filled in.
+        <p>The editor is an <strong>Advanced Custom Fields</strong> form. The post <strong>Title</strong> names the
+        template; the <strong>Weekly Shift Pattern</strong> group holds one box per day, and you type
+        <a href="#template-format">one shift per line</a>. Leave a day empty for no shifts:</p>
+
+        <div class="screen-mock">
+            <div class="mock-bar">
+                <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                <div class="url">https://aa-bristol.org/wp-admin/post-new.php?post_type=trusted_template</div>
+            </div>
+            <div class="mock-content">
+                <div class="mock-title">Add Shift Template</div>
+                <div class="acf-field" style="width:100%"><span class="acf-label">Title</span><span class="acf-ctrl acf-text" style="max-width:320px">Standard week</span></div>
+                <div class="acf-groups">
+                    <div class="acf-group">
+                        <div class="acf-group-head">Weekly Shift Pattern</div>
+                        <div class="acf-fields">
+                            <div class="acf-field" style="width:100%"><span class="acf-label">How to fill this in</span><span style="display:block;font-size:11.5px;color:var(--text-secondary);line-height:1.6;">One shift per line: <code style="font-size:11px;">HH:MM-HH:MM | Name | Member</code>. Times are 24-hour (<code style="font-size:11px;">00:00</code>–<code style="font-size:11px;">24:00</code>); Name is required; Member is an existing telephone responder.</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Monday</span><span class="acf-ctrl acf-shifts">09:00-13:00 | Reception | John D
+13:00-17:00 | Reception</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Tuesday</span><span class="acf-ctrl acf-shifts">09:00-13:00 | Reception
+17:00-21:00 | Evening on-call</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Wednesday</span><span class="acf-ctrl acf-shifts">09:00-17:00 | Reception | Mary K</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Thursday</span><span class="acf-ctrl acf-shifts">09:00-17:00 | Reception</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Friday</span><span class="acf-ctrl acf-shifts">09:00-13:00 | Reception
+13:00-21:00 | Evening on-call</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Saturday</span><span class="acf-ctrl acf-shifts">10:00-14:00 | Weekend cover</span></div>
+                            <div class="acf-field" style="width:50%"><span class="acf-label">Sunday</span><span class="acf-ctrl acf-shifts acf-shifts-empty"></span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1331,8 +1364,6 @@
                 <span style="color:var(--text-secondary);">(§ Make a Telephone Responder)</span></li>
             <li>Member record — <strong>Home</strong> group with <strong>Is Twelfth Stepper?</strong>, <strong>Areas</strong>
                 and <strong>Accepts</strong>. <span style="color:var(--text-secondary);">(§ Make a 12th Stepper)</span></li>
-            <li>The <strong>Add Shift Template</strong> editor with the seven day boxes and example lines.
-                <span style="color:var(--text-secondary);">(§ Creating a Template)</span></li>
             <li>A full-week <strong>Rota Calendar</strong> with the toolbar and a mix of filled / open shifts.
                 <span style="color:var(--text-secondary);">(§ The Calendar at a Glance)</span></li>
             <li>The calendar in <strong>bulk-assign</strong> mode (selection bar + ticked shifts).
