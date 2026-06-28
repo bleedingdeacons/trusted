@@ -125,5 +125,32 @@ final class TemplateFields
             'active'                => true,
             'description'           => __('A reusable weekly shift pattern. Apply it to a week from the Trusted calendar; any members you name are checked when you save and pre-assigned on apply.', 'trusted'),
         ]);
+
+        // The template's name is its post title. WordPress would otherwise let
+        // an untitled template publish, so require it through ACF's save
+        // validation — the error blocks the save and surfaces in the editor
+        // just like a required field.
+        add_action('acf/validate_save_post', [$this, 'validateTemplateName']);
+    }
+
+    /**
+     * Reject a shift template saved with an empty name (post title).
+     *
+     * Runs during ACF's save-validation pass. The template post type is
+     * classic-editor (show_in_rest => false), so the post form's title and type
+     * are present in $_POST when ACF validates.
+     */
+    public function validateTemplateName(): void
+    {
+        if (acf_maybe_get_POST('post_type') !== \TRUSTED_TEMPLATE_POST_TYPE) {
+            return;
+        }
+
+        if (trim((string) acf_maybe_get_POST('post_title')) === '') {
+            acf_add_validation_error(
+                '',
+                __('A template name is required — enter one in the title field at the top.', 'trusted')
+            );
+        }
     }
 }

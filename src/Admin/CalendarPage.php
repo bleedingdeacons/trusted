@@ -18,8 +18,8 @@ final class CalendarPage
         $capability = (string) apply_filters('trusted_capability', 'manage_options');
 
         add_menu_page(
-            __('Trusted', 'trusted'),
-            __('Trusted', 'trusted'),
+            __('Telephone', 'trusted'),
+            __('Telephone', 'trusted'),
             $capability,
             self::SLUG,
             [$this, 'render'],
