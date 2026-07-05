@@ -228,7 +228,9 @@
             })
             .catch(function (e) {
                 clear(root);
-                root.appendChild(el('div', { class: 'notice notice-error', html: '<p>' + e.message + '</p>' }));
+                // Render the message as text (not innerHTML) so a server- or
+                // network-derived message can never inject markup here.
+                root.appendChild(el('div', { class: 'notice notice-error' }, [el('p', { text: e.message })]));
             });
     }
 

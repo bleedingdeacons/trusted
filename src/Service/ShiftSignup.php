@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Trusted\Service;
 
 use InvalidArgumentException;
-use Trusted\Contracts\AssignmentFactoryInterface;
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
 use Unity\Members\Interfaces\Member as UnityMember;
@@ -28,7 +27,6 @@ final class ShiftSignup
     public function __construct(
         private RotaRepositoryInterface $rota,
         private AssignmentRepositoryInterface $assignments,
-        private AssignmentFactoryInterface $assignmentFactory,
     ) {
     }
 
@@ -129,12 +127,15 @@ final class ShiftSignup
                 continue;
             }
 
-            if ($this->assignments->findByRota($rotaId) !== []) {
+            // Atomic claim: the database's UNIQUE(rota_id) constraint decides
+            // whether the slot was open, so two concurrent sign-ups can never
+            // both land. A null result means it was already taken.
+            $saved = $this->assignments->assignIfOpen($rotaId, $memberId, $notes);
+            if ($saved === null) {
                 $skipped[] = ['rota_id' => $rotaId, 'reason' => 'full'];
                 continue;
             }
 
-            $saved      = $this->assignments->save($this->assignmentFactory->create($rotaId, $memberId, $notes));
             $assigned[] = $saved->toArray();
         }
 

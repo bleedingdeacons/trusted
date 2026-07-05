@@ -100,8 +100,7 @@ class TrustedServiceProvider
         $container->register(ShiftSignup::class, static function (ContainerInterface $c): ShiftSignup {
             return new ShiftSignup(
                 $c->get(RotaRepositoryInterface::class),
-                $c->get(AssignmentRepositoryInterface::class),
-                $c->get(AssignmentFactoryInterface::class)
+                $c->get(AssignmentRepositoryInterface::class)
             );
         });
 
