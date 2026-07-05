@@ -102,6 +102,31 @@ final class AssignmentRepository implements AssignmentRepositoryInterface
         return $saved->withMember($this->resolveMember($saved->memberId()));
     }
 
+    public function assignIfOpen(int $rotaId, string $memberId, string $notes): ?Assignment
+    {
+        // INSERT IGNORE + the UNIQUE(rota_id) constraint make this atomic: a
+        // second concurrent sign-up for the same slot is silently rejected
+        // (0 rows affected) rather than racing past an application-level
+        // emptiness check. This is the source of truth for "one per slot".
+        $affected = $this->db->query(
+            $this->db->prepare(
+                "INSERT IGNORE INTO {$this->table} (rota_id, member_id, notes) VALUES (%d, %s, %s)",
+                $rotaId,
+                $memberId,
+                $notes
+            )
+        );
+
+        if (! is_int($affected) || $affected < 1 || (int) $this->db->insert_id < 1) {
+            return null; // slot already taken (or the insert failed)
+        }
+
+        $assignment = $this->factory->create($rotaId, $memberId, $notes)
+            ->withId((int) $this->db->insert_id);
+
+        return $assignment->withMember($this->resolveMember($memberId));
+    }
+
     public function delete(int $id): bool
     {
         return (bool) $this->db->delete($this->table, ['id' => $id], ['%d']);
