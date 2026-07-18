@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../amber" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../beacon" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../concordance" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../confur" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../integrity" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../lifelines" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../rabbit" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../reach" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../reconcile" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../scrutiny" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../sentinel" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../stalwart" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../steward" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../tamar" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../trumpet" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../tsml-for-unity" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../unity" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../whatsapp" vcs="Git" />
   </component>
 </project>
