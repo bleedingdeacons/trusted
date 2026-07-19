@@ -105,6 +105,12 @@ jobs:
         # until now, and it starts clean.
         run: composer phpstan
 
+      - name: PHPUnit
+        # A gate from the outset. This plugin had no tests at all until now;
+        # the suite covers the pure-PHP core (template grammar, domain value
+        # objects, row factories, sign-up rules) and needs no WordPress.
+        run: composer test
+
       # --- Advisory --------------------------------------------------------
       # Reported but not yet enforced. Promote to a gate once a repo is green.
 
