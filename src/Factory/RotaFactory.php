@@ -17,7 +17,7 @@ final class RotaFactory implements RotaFactoryInterface
             startTime: $this->normaliseTime((string) ($row['start_time'] ?? '')),
             endTime: $this->normaliseTime((string) ($row['end_time'] ?? '')),
             label: (string) ($row['label'] ?? ''),
-            templateId: isset($row['template_id']) && $row['template_id'] !== null
+            templateId: isset($row['template_id'])
                 ? (int) $row['template_id']
                 : null,
         );

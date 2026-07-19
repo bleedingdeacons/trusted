@@ -15,9 +15,36 @@ jobs:
     name: PHP 8.1
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        # Trusted is checked out alongside Unity and Beacon, mirroring a
+        # WordPress plugins/ directory, so run everything from inside Trusted.
+        working-directory: trusted
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          path: trusted
+
+      - name: Checkout Unity
+        # Trusted registers its repositories into Unity's container and
+        # type-hints Unity's interfaces throughout. Unity is not a composer
+        # dependency, so without this PHPStan cannot resolve any of them.
+        uses: actions/checkout@v4
+        with:
+          repository: bleedingdeacons/unity
+          ref: main
+          path: unity
+
+      - name: Checkout Beacon
+        # Optional at runtime, but CallForwardingService appears in a return
+        # type, so it has to resolve.
+        uses: actions/checkout@v4
+        with:
+          repository: bleedingdeacons/beacon
+          ref: main
+          path: beacon
 
       - name: Setup PHP 8.1
         uses: shivammathur/setup-php@v2
@@ -72,6 +99,11 @@ jobs:
       - name: Build production archive
         # The build is what /bump ships, so a broken build must fail the PR.
         run: composer build:production
+
+      - name: PHPStan
+        # A gate from the outset: this plugin had no static analysis at all
+        # until now, and it starts clean.
+        run: composer phpstan
 
       # --- Advisory --------------------------------------------------------
       # Reported but not yet enforced. Promote to a gate once a repo is green.

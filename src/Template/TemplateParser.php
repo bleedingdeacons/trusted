@@ -62,7 +62,7 @@ final class TemplateParser
 
         // Drop one leading separator (the divider between the times and the
         // label), then split the rest into "label | member" on the pipe.
-        $rest  = preg_replace('/^\s*[|–-]\s*/u', '', trim($m[3] ?? '')) ?? '';
+        $rest  = preg_replace('/^\s*[|–-]\s*/u', '', trim($m[3])) ?? '';
         $parts = array_map('trim', explode('|', $rest));
 
         $label  = $parts[0] ?? '';
