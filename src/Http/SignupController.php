@@ -172,7 +172,17 @@ final class SignupController
 
     public function isDate(mixed $value): bool
     {
-        return is_string($value) && (bool) \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        if (! is_string($value)) {
+            return false;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        // createFromFormat() overflows silently rather than failing:
+        // "2026-02-31" parses happily and becomes 2026-03-03, and "2026-13-01"
+        // becomes 2027-01-01. Round-tripping the parsed date back through the
+        // format is what rejects a date that does not exist.
+        return $date instanceof \DateTimeImmutable && $date->format('Y-m-d') === $value;
     }
 
     /**
