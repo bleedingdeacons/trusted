@@ -1,0 +1,52 @@
+# Committed PHPStan config.
+#
+# phpstan.neon (no .dist) is gitignored and, if present, overrides this file
+# entirely — keep personal tweaks there. This .dist is what CI uses.
+
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 5
+    # PHPStan 2 proves a condition dead when PHPDoc says it cannot happen.
+    # In WordPress plugin code PHPDoc is aspirational: values arrive from
+    # get_field(), $_POST and $wpdb, none of which the annotation can
+    # guarantee. Trusting it would mean deleting defensive guards that are
+    # correct at runtime. Native types are still checked normally.
+    treatPhpDocTypesAsCertain: false
+    # An ignoreErrors pattern that stops matching is reported as an error by
+    # default, so a stale pattern would fail the gate — and whether a pattern
+    # matches depends on which sibling plugins are checked out, which differs
+    # between a developer's machine and CI. Matches amber.
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - src
+    bootstrapFiles:
+        - vendor/autoload.php
+    scanFiles:
+        # Defines TRUSTED_VERSION, TRUSTED_DIR and friends. Outside paths
+        # (src only), so it has to be scanned explicitly.
+        - trusted.php
+    scanDirectories:
+        # Trusted is built on Unity: it registers its repositories into
+        # Unity's container and type-hints Unity's interfaces throughout.
+        # Unity is not a composer dependency, so without this PHPStan cannot
+        # resolve a single one of them. CI checks it out alongside.
+        - ../unity/src
+        # Beacon is optional at runtime — forwardingService() returns null
+        # when its container has no driver bound — but CallForwardingService
+        # appears in a return type, so it has to resolve. The plugin header
+        # declares "Requires Plugins: scrutiny, beacon".
+        - ../beacon/src
+    ignoreErrors:
+        # WordPress functions that PHPStan doesn't recognize
+        - '#Function get_plugin_data not found#'
+        - '#Function dbDelta not found#'
+        # ACF, a third-party plugin this one validates its forms through. Not
+        # a composer dependency and not covered by wordpress-stubs. Named one
+        # by one so a typo in any of them is still reported.
+        - '#[Ff]unction acf_maybe_get_POST not found#'
+        - '#[Ff]unction acf_add_validation_error not found#'
+        # Defined in trusted.php from plugin_dir_url() rather than a literal,
+        # so scanning the file is not enough for PHPStan to fold it.
+        - '#Constant TRUSTED_URL not found#'
