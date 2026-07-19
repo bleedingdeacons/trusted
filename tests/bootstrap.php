@@ -14,6 +14,15 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
+// WP_Mock intercepts the WordPress functions the WP-coupled classes call:
+// apply_filters, __, current_time and ACF's acf_add_validation_error.
+//
+// Bootstrapped immediately after the autoloader because this file defines no
+// WordPress functions of its own — there is nothing here for WP_Mock to
+// shadow. (Scrutiny's bootstrap does define some, and there the ordering
+// matters; see its comments.)
+WP_Mock::bootstrap();
+
 if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__DIR__) . '/');
 }
@@ -35,6 +44,7 @@ $unityMember = dirname(__DIR__, 2) . '/unity/src/Members/Interfaces/Member.php';
 if (is_file($unityMember)) {
     require_once dirname(__DIR__, 2) . '/unity/src/Members/ResponderCertification.php';
     require_once $unityMember;
+    require_once dirname(__DIR__, 2) . '/unity/src/Members/Interfaces/MemberRepository.php';
 } elseif (!interface_exists(\Unity\Members\Interfaces\Member::class)) {
     eval(<<<'PHP'
 namespace Unity\Members;
@@ -77,6 +87,19 @@ interface Member
     public function getGdprAcceptanceMethod(): string;
     public function getGdprAcceptanceStatement(): string;
     public function getUpdated(): string;
+}
+
+interface MemberRepository
+{
+    public function findById(int $id): ?Member;
+    public function findByEmail(string $email): ?Member;
+    public function findAll(array $args = []): array;
+    public function findTelephoneResponders(): array;
+    public function count(array $args = []): int;
+    public function create(string $anonymousName): int;
+    public function save(Member $member): bool;
+    public function delete(int $id): bool;
+    public function update(Member $member): bool;
 }
 PHP
     );

@@ -29,6 +29,8 @@
         "build:clean": "php build.php clean"
     },
     "require-dev": {
+        "10up/wp_mock": "^1.0",
+        "mockery/mockery": "^1.6",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^9.6|^10.0",
         "szepeviktor/phpstan-wordpress": "^2.0"
