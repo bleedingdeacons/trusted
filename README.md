@@ -165,3 +165,20 @@ All routes require the Trusted capability.
 | GET | `/members?search=` | — |
 | GET | `/templates` | — |
 | POST | `/apply-template` | `template_id,week_start,replace?` |
+
+## Testing
+
+Install the dev dependencies and run the suite from the plugin directory:
+
+```bash
+composer install
+```
+
+| Command | Description |
+|---|---|
+| `composer test` | Run the PHPUnit test suite |
+| `composer phpstan` | Run PHPStan static analysis |
+
+The suite uses **PHPUnit** with **WP_Mock** and **Mockery**. Line coverage is
+reported to [Coveralls](https://coveralls.io/github/bleedingdeacons/trusted?branch=main)
+on every CI run — see the coverage badge at the top of this file.
