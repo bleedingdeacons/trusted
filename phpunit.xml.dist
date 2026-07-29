@@ -17,5 +17,16 @@
         <include>
             <directory suffix=".php">src</directory>
         </include>
+        <exclude>
+            <!--
+                Admin screens: the calendar/developer/help pages and asset
+                enqueuing. WordPress admin render/menu/enqueue glue exercised
+                through the admin UI at runtime, not in unit tests — the same
+                exclusion the other suite plugins apply to their src/Admin layers.
+            -->
+            <directory suffix=".php">src/Admin</directory>
+            <!-- Pure interface declarations: no executable behaviour to cover. -->
+            <directory suffix=".php">src/Contracts</directory>
+        </exclude>
     </coverage>
 </phpunit>
