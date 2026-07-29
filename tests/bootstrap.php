@@ -27,6 +27,10 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__DIR__) . '/');
 }
 
+// WordPress REST/HTTP class stubs (WP_Error, WP_REST_*), which WP_Mock does not
+// provide, plus a couple of pure passthrough helpers.
+require_once __DIR__ . '/wp-stubs.php';
+
 // ──────────────────────────────────────────────
 //  Unity's Member interface
 //
@@ -45,6 +49,12 @@ if (is_file($unityMember)) {
     require_once dirname(__DIR__, 2) . '/unity/src/Members/ResponderCertification.php';
     require_once $unityMember;
     require_once dirname(__DIR__, 2) . '/unity/src/Members/Interfaces/MemberRepository.php';
+
+    // Unity's container contract, which TrustedServiceProvider registers against.
+    $unityContainer = dirname(__DIR__, 2) . '/unity/src/Core/Interfaces/Container.php';
+    if (is_file($unityContainer) && !interface_exists(\Unity\Core\Interfaces\Container::class)) {
+        require_once $unityContainer;
+    }
 } elseif (!interface_exists(\Unity\Members\Interfaces\Member::class)) {
     eval(<<<'PHP'
 namespace Unity\Members;
