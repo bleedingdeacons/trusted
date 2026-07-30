@@ -9,6 +9,17 @@ namespace Trusted\Domain;
  *
  * A week's rota is simply the collection of Rota rows whose slot_date falls
  * within that week. Assignments attach Members to these slots.
+ *
+ * @phpstan-import-type AssignmentArray from Assignment
+ * @phpstan-type RotaArray array{
+ *     id: int|null,
+ *     date: string,
+ *     start: string,
+ *     end: string,
+ *     label: string,
+ *     template_id: int|null,
+ *     assignments: array<int, AssignmentArray>
+ * }
  */
 final class Rota implements \JsonSerializable
 {
@@ -83,6 +94,9 @@ final class Rota implements \JsonSerializable
         return $clone;
     }
 
+    /**
+     * @return RotaArray
+     */
     public function toArray(): array
     {
         return [
@@ -99,6 +113,9 @@ final class Rota implements \JsonSerializable
         ];
     }
 
+    /**
+     * @return RotaArray
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();

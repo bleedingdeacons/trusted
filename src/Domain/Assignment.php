@@ -9,6 +9,16 @@ namespace Trusted\Domain;
  *
  * The Member object itself is resolved on demand through a MemberFactory and
  * attached here for presentation; it is never persisted in this table.
+ *
+ * @phpstan-import-type MemberArray from Member
+ * @phpstan-type AssignmentArray array{
+ *     id: int|null,
+ *     rota_id: int,
+ *     member_id: string,
+ *     notes: string,
+ *     assigned_at: string|null,
+ *     member: MemberArray|null
+ * }
  */
 final class Assignment implements \JsonSerializable
 {
@@ -68,6 +78,9 @@ final class Assignment implements \JsonSerializable
         return $clone;
     }
 
+    /**
+     * @return AssignmentArray
+     */
     public function toArray(): array
     {
         return [
@@ -80,6 +93,9 @@ final class Assignment implements \JsonSerializable
         ];
     }
 
+    /**
+     * @return AssignmentArray
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();
