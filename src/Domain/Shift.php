@@ -11,6 +11,8 @@ namespace Trusted\Domain;
  * A shift may optionally name a member (by their Unity anonymous name) who
  * should be pre-assigned when the template is applied. Empty string means the
  * shift carries no member.
+ *
+ * @phpstan-type ShiftArray array{start: string, end: string, label: string, member: string}
  */
 final class Shift implements \JsonSerializable
 {
@@ -46,7 +48,7 @@ final class Shift implements \JsonSerializable
     }
 
     /**
-     * @return array{start: string, end: string, label: string, member: string}
+     * @return ShiftArray
      */
     public function toArray(): array
     {
@@ -58,6 +60,9 @@ final class Shift implements \JsonSerializable
         ];
     }
 
+    /**
+     * @return ShiftArray
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();

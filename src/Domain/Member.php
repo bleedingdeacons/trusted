@@ -10,6 +10,8 @@ namespace Trusted\Domain;
  * A lightweight, read-only value object. It deliberately carries only the
  * contact details a rota coordinator needs. Where Members come from (WP users,
  * an external HR system, a CRM) is the concern of a MemberFactory implementation.
+ *
+ * @phpstan-type MemberArray array{id: string, name: string, email: string, telephone: string}
  */
 final class Member implements \JsonSerializable
 {
@@ -42,7 +44,7 @@ final class Member implements \JsonSerializable
     }
 
     /**
-     * @return array{id: string, name: string, email: string, telephone: string}
+     * @return MemberArray
      */
     public function toArray(): array
     {
@@ -54,6 +56,9 @@ final class Member implements \JsonSerializable
         ];
     }
 
+    /**
+     * @return MemberArray
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();
