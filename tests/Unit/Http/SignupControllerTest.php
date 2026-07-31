@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
+use Brain\Monkey\Filters;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
 use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
 use Trusted\Tests\Fixtures\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
-use WP_Mock;
 
 /**
  * Tests for the sign-up endpoints' permission gate.
@@ -29,7 +29,7 @@ final class SignupControllerTest extends TestCase
     {
         // The filter's default. No sibling plugin has resolved a member, so
         // nobody is signed in.
-        WP_Mock::onFilter('trusted_signup_member')->with(null)->reply(null);
+        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn(null);
 
         self::assertFalse($this->makeController()->can());
     }
@@ -42,9 +42,9 @@ final class SignupControllerTest extends TestCase
         // The filter returned a real Unity member, but not a responder. The
         // controller re-checks rather than trusting the caller — this is the
         // whole reason the check is repeated here.
-        WP_Mock::onFilter('trusted_signup_member')
+        Filters\expectApplied('trusted_signup_member')
             ->with(null)
-            ->reply(new ResponderStub(id: 7, telephoneResponder: false));
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: false));
 
         self::assertFalse($this->makeController()->can());
     }
@@ -55,7 +55,7 @@ final class SignupControllerTest extends TestCase
     public function it_denies_access_when_the_filter_returns_something_that_is_not_a_member(): void
     {
         // A misbehaving filter must not open the door.
-        WP_Mock::onFilter('trusted_signup_member')->with(null)->reply('not-a-member');
+        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn('not-a-member');
 
         self::assertFalse($this->makeController()->can());
     }
@@ -65,9 +65,9 @@ final class SignupControllerTest extends TestCase
      */
     public function it_allows_a_verified_telephone_responder(): void
     {
-        WP_Mock::onFilter('trusted_signup_member')
+        Filters\expectApplied('trusted_signup_member')
             ->with(null)
-            ->reply(new ResponderStub(id: 7, telephoneResponder: true));
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
 
         self::assertTrue($this->makeController()->can());
     }

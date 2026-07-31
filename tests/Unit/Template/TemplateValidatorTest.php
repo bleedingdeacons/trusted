@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
+use Brain\Monkey\Functions;
 use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplateParser;
@@ -12,7 +13,6 @@ use Trusted\Tests\Fixtures\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 use Unity\Members\Interfaces\Member as UnityMember;
-use WP_Mock;
 
 /**
  * Tests for template save-time validation.
@@ -34,7 +34,6 @@ final class TemplateValidatorTest extends TestCase
 
         // Translation is a pass-through here; the assertions are about which
         // field an error lands on and which branch produced it, not wording.
-        WP_Mock::userFunction('__')->andReturnUsing(static fn (string $text): string => $text);
     }
 
     protected function tearDown(): void
@@ -63,7 +62,7 @@ final class TemplateValidatorTest extends TestCase
      */
     public function it_ignores_forms_that_are_not_ours(): void
     {
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         // No acf payload at all — some other form is saving.
         $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
@@ -76,7 +75,7 @@ final class TemplateValidatorTest extends TestCase
      */
     public function it_accepts_a_template_naming_a_telephone_responder(): void
     {
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | John D'];
 
@@ -91,7 +90,7 @@ final class TemplateValidatorTest extends TestCase
     public function it_blocks_a_save_naming_a_member_who_is_not_a_responder(): void
     {
         $captured = [];
-        WP_Mock::userFunction('acf_add_validation_error')
+        Functions\expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $message) use (&$captured): void {
                 $captured = ['field' => $field, 'message' => $message];
@@ -119,7 +118,7 @@ final class TemplateValidatorTest extends TestCase
     {
         // A typo and a real-but-ineligible member need different advice.
         $message = '';
-        WP_Mock::userFunction('acf_add_validation_error')
+        Functions\expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$message): void {
                 $message = $text;
@@ -141,7 +140,7 @@ final class TemplateValidatorTest extends TestCase
         // Three nameless lines, one message: the save is blocked without
         // burying the operator in repeats.
         $messages = [];
-        WP_Mock::userFunction('acf_add_validation_error')
+        Functions\expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$messages): void {
                 $messages[] = $text;
@@ -160,7 +159,7 @@ final class TemplateValidatorTest extends TestCase
      */
     public function it_matches_names_case_insensitively(): void
     {
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [
             self::MON_KEY => "09:00-10:00 | A | John D\n10:00-11:00 | B | john d\n11:00-12:00 | C | JOHN D",
@@ -176,7 +175,7 @@ final class TemplateValidatorTest extends TestCase
      */
     public function it_matches_names_with_surrounding_whitespace(): void
     {
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning |    John D   '];
 
@@ -191,7 +190,7 @@ final class TemplateValidatorTest extends TestCase
     public function it_validates_every_day_field_that_was_submitted(): void
     {
         $fields = [];
-        WP_Mock::userFunction('acf_add_validation_error')
+        Functions\expect('acf_add_validation_error')
             ->twice()
             ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
                 $fields[] = $field;
@@ -216,7 +215,7 @@ final class TemplateValidatorTest extends TestCase
         // Only Monday was submitted; the other six day fields must not be
         // invented or reported on.
         $fields = [];
-        WP_Mock::userFunction('acf_add_validation_error')
+        Functions\expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
                 $fields[] = $field;

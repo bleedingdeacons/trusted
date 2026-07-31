@@ -6,9 +6,15 @@ declare(strict_types=1);
  * WordPress REST/HTTP class stubs for the Trusted tests.
  *
  * The REST controller type-hints WP_REST_Request/Response, returns WP_Error and
- * reads WP_REST_Server method constants. WP_Mock supplies the *functions* the
- * classes call; these are the *classes* it does not provide. Minimal but
- * behaviour-compatible with the parts the controller uses.
+ * reads WP_REST_Server method constants — the classes bleedingdeacons/wp-mocks
+ * does not carry. Minimal but behaviour-compatible with the parts the
+ * controller uses.
+ *
+ * Also here: the registrars whose recorded output the tests read directly
+ * ($GLOBALS['trusted_post_types'], ['trusted_rest_routes'], ['trusted_acf_groups'])
+ * and the option/dbDelta stand-ins. tests/bootstrap.php loads this file
+ * *before* the shared layer precisely so these win — the shared versions
+ * record somewhere else.
  */
 
 if (!defined('TRUSTED_TEMPLATE_POST_TYPE')) {
@@ -16,9 +22,6 @@ if (!defined('TRUSTED_TEMPLATE_POST_TYPE')) {
 }
 if (!defined('TRUSTED_VERSION')) {
     define('TRUSTED_VERSION', '1.0.0-test');
-}
-if (!defined('ARRAY_A')) {
-    define('ARRAY_A', 'ARRAY_A');
 }
 
 if (!function_exists('current_time')) {
@@ -166,33 +169,15 @@ if (!class_exists('WP_REST_Request')) {
     }
 }
 
-// Pure passthrough helpers the controller/services call. Left to plain globals
-// (not WP_Mock) since no test asserts on them; apply_filters / current_user_can
-// stay with WP_Mock so the existing filter-based tests keep working.
-if (!function_exists('sanitize_text_field')) {
-    function sanitize_text_field($str): string
-    {
-        return trim(strip_tags((string) $str));
-    }
-}
-if (!function_exists('sanitize_textarea_field')) {
-    function sanitize_textarea_field($str): string
-    {
-        return trim(strip_tags((string) $str));
-    }
-}
-if (!function_exists('add_action')) {
-    function add_action(string $hook, $cb, int $priority = 10, int $args = 1): bool
-    {
-        return true;
-    }
-}
-if (!function_exists('add_filter')) {
-    function add_filter(string $hook, $cb, int $priority = 10, int $args = 1): bool
-    {
-        return true;
-    }
-}
+// ARRAY_A, sanitize_text_field(), sanitize_textarea_field(), is_wp_error() and
+// flush_rewrite_rules() used to be defined here and are not any more: the
+// shared layer carries all five with the same behaviour. apply_filters() and
+// the hook functions belong to Brain Monkey.
+// add_action() and add_filter() are deliberately absent. Brain Monkey owns the
+// whole hook layer and defines them lazily inside its setUp(); a no-op defined
+// here would shadow them permanently and silently, so every hook expectation
+// would simply never be satisfied. The WordPress-coupled tests reach them by
+// extending Trusted\Tests\TestCase.
 if (!function_exists('acf_add_local_field_group')) {
     function acf_add_local_field_group(array $group): bool
     {
@@ -204,17 +189,6 @@ if (!function_exists('acf_maybe_get_POST')) {
     function acf_maybe_get_POST(string $key, $default = null)
     {
         return $_POST[$key] ?? $default;
-    }
-}
-if (!function_exists('is_wp_error')) {
-    function is_wp_error($thing): bool
-    {
-        return $thing instanceof WP_Error;
-    }
-}
-if (!function_exists('flush_rewrite_rules')) {
-    function flush_rewrite_rules(bool $hard = true): void
-    {
     }
 }
 if (!function_exists('register_post_type')) {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
+use Brain\Monkey\Filters;
+use Brain\Monkey\Functions;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
 use Trusted\Http\RestController;
@@ -17,7 +19,6 @@ use Trusted\Tests\Fixtures\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 use WP_Error;
-use WP_Mock;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -38,7 +39,6 @@ final class RestControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        WP_Mock::userFunction('__')->andReturnUsing(static fn (string $t): string => $t);
         $this->build();
     }
 
@@ -98,8 +98,7 @@ final class RestControllerTest extends TestCase
 
     public function testCanChecksTheCapability(): void
     {
-        WP_Mock::onFilter('trusted_capability')->with('manage_options')->reply('manage_options');
-        WP_Mock::userFunction('current_user_can')->with('manage_options')->andReturn(true);
+        Filters\expectApplied('trusted_capability')->with('manage_options')->andReturn('manage_options');
         self::assertTrue($this->controller->can());
     }
 
@@ -287,8 +286,8 @@ final class RestControllerTest extends TestCase
 
     public function testGetTemplates(): void
     {
-        WP_Mock::userFunction('get_posts')->andReturn([(object) ['ID' => 3]]);
-        WP_Mock::userFunction('get_the_title')->andReturn('Weekday');
+        Functions\expect('get_posts')->andReturn([(object) ['ID' => 3]]);
+        Functions\expect('get_the_title')->andReturn('Weekday');
 
         $data = $this->controller->getTemplates()->get_data();
         self::assertSame(['id' => 3, 'title' => 'Weekday'], $data[0]);
@@ -302,7 +301,7 @@ final class RestControllerTest extends TestCase
     public function testApplyTemplateCreatesSlots(): void
     {
         // An empty template (no shift fields) applies cleanly, creating nothing.
-        WP_Mock::userFunction('get_post_meta')->andReturn('');
+        Functions\expect('get_post_meta')->andReturn('');
 
         $data = $this->controller->applyTemplate($this->request([
             'template_id' => 3, 'week_start' => '2026-07-22', 'replace' => true,
@@ -320,8 +319,8 @@ final class RestControllerTest extends TestCase
 
     public function testCreateTemplateFromWeekSucceeds(): void
     {
-        WP_Mock::userFunction('wp_insert_post')->andReturn(42);
-        WP_Mock::userFunction('update_post_meta')->andReturn(true);
+        Functions\expect('wp_insert_post')->andReturn(42);
+        Functions\expect('update_post_meta')->andReturn(true);
 
         $response = $this->controller->createTemplateFromWeek($this->request([
             'week_start' => '2026-07-20', 'title' => 'My Template', 'include_members' => false,
@@ -332,8 +331,8 @@ final class RestControllerTest extends TestCase
 
     public function testCreateTemplateFromWeekReportsFailure(): void
     {
-        WP_Mock::userFunction('wp_insert_post')->andReturn(0);
-        WP_Mock::userFunction('update_post_meta')->andReturn(true);
+        Functions\expect('wp_insert_post')->andReturn(0);
+        Functions\expect('update_post_meta')->andReturn(true);
 
         $response = $this->controller->createTemplateFromWeek($this->request([
             'week_start' => '2026-07-20', 'title' => 'My Template',
