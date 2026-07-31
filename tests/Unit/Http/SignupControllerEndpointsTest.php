@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
+use Brain\Monkey\Filters;
 use Trusted\Factory\RotaFactory;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
@@ -13,7 +14,6 @@ use Trusted\Tests\Fixtures\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 use WP_Error;
-use WP_Mock;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -34,7 +34,6 @@ final class SignupControllerEndpointsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        WP_Mock::userFunction('__')->andReturnUsing(static fn (string $t): string => $t);
 
         $this->factory     = new RotaFactory();
         $this->rota        = new InMemoryRotaRepository();
@@ -48,13 +47,13 @@ final class SignupControllerEndpointsTest extends TestCase
 
     private function actingResponder(): void
     {
-        WP_Mock::onFilter('trusted_signup_member')->with(null)
-            ->reply(new ResponderStub(id: 7, telephoneResponder: true));
+        Filters\expectApplied('trusted_signup_member')->with(null)
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
     }
 
     private function noMember(): void
     {
-        WP_Mock::onFilter('trusted_signup_member')->with(null)->reply(null);
+        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn(null);
     }
 
     private function seedSlot(string $date): int

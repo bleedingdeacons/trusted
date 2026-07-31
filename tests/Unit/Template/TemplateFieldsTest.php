@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
+use Brain\Monkey\Functions;
 use Trusted\Template\TemplateFields;
 use Trusted\Tests\TestCase;
-use WP_Mock;
 
 /**
  * @covers \Trusted\Template\TemplateFields
@@ -16,7 +16,6 @@ final class TemplateFieldsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        WP_Mock::userFunction('__')->andReturnUsing(static fn (string $t): string => $t);
         $_POST = [];
         $GLOBALS['trusted_acf_groups'] = [];
     }
@@ -54,7 +53,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameIgnoresOtherPostTypes(): void
     {
         $_POST = ['post_type' => 'post', 'post_title' => ''];
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);
@@ -63,7 +62,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameRejectsAnEmptyTitle(): void
     {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => '   '];
-        WP_Mock::userFunction('acf_add_validation_error')->once();
+        Functions\expect('acf_add_validation_error')->once();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);
@@ -72,7 +71,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameAcceptsANonEmptyTitle(): void
     {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => 'My Template'];
-        WP_Mock::userFunction('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);

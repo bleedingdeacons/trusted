@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
+use Brain\Monkey\Functions;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
 use Trusted\Support\ResponderDirectory;
@@ -15,7 +16,6 @@ use Trusted\Tests\Fixtures\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
-use WP_Mock;
 
 /**
  * @covers \Trusted\Template\TemplateApplicator
@@ -45,16 +45,15 @@ final class TemplateApplicatorTest extends TestCase
     /** Return template lines for the Monday field only, '' otherwise. */
     private function mondayShifts(string $lines): void
     {
-        WP_Mock::userFunction('get_post_meta')->andReturnUsing(
+        Functions\expect('get_post_meta')->andReturnUsing(
             static fn (int $id, string $key, bool $single): string => $key === 'trusted_shifts_mon' ? $lines : ''
         );
     }
 
     public function testOptionsMapsPostsToTitles(): void
     {
-        WP_Mock::userFunction('__')->andReturnUsing(static fn (string $t): string => $t);
-        WP_Mock::userFunction('get_posts')->andReturn([(object) ['ID' => 3], (object) ['ID' => 4]]);
-        WP_Mock::userFunction('get_the_title')->andReturnUsing(static fn ($p): string => 'Template ' . $p->ID);
+        Functions\expect('get_posts')->andReturn([(object) ['ID' => 3], (object) ['ID' => 4]]);
+        Functions\expect('get_the_title')->andReturnUsing(static fn ($p): string => 'Template ' . $p->ID);
 
         $options = $this->build()->options();
         self::assertSame(['3' => 'Template 3', '4' => 'Template 4'], array_map('strval', $options));
@@ -123,9 +122,9 @@ final class TemplateApplicatorTest extends TestCase
         $applicator = $this->build();
         $this->rota->save($this->factory->create('2026-07-20', '09:00', '12:00', 'AM'));
 
-        WP_Mock::userFunction('wp_insert_post')->andReturn(42);
+        Functions\expect('wp_insert_post')->andReturn(42);
         $written = [];
-        WP_Mock::userFunction('update_post_meta')->andReturnUsing(
+        Functions\expect('update_post_meta')->andReturnUsing(
             static function (int $id, string $key, string $value) use (&$written): bool {
                 $written[$key] = $value;
                 return true;
@@ -146,9 +145,9 @@ final class TemplateApplicatorTest extends TestCase
         $member = new \Trusted\Domain\Member('7', 'John D', 'j@x.test', '0700');
         $this->rota->save($slot->withAssignments([$assignment->withMember($member)]));
 
-        WP_Mock::userFunction('wp_insert_post')->andReturn(9);
+        Functions\expect('wp_insert_post')->andReturn(9);
         $written = [];
-        WP_Mock::userFunction('update_post_meta')->andReturnUsing(
+        Functions\expect('update_post_meta')->andReturnUsing(
             static function (int $id, string $key, string $value) use (&$written): bool {
                 $written[$key] = $value;
                 return true;
@@ -161,7 +160,7 @@ final class TemplateApplicatorTest extends TestCase
 
     public function testCreateFromWeekReturnsZeroOnInsertFailure(): void
     {
-        WP_Mock::userFunction('wp_insert_post')->andReturn(0);
+        Functions\expect('wp_insert_post')->andReturn(0);
         self::assertSame(0, $this->build()->createFromWeek('2026-07-20', 'X', false));
     }
 }

@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Schema is 10.5. Coverage include/exclude therefore lives in <source>,
+    not the 9.x <coverage> element, which now carries only report options.
+
+    This suite ran on PHPUnit 9.6 until wp_mock was dropped, not by choice:
+    10up/wp_mock 1.1.1 declares "phpunit/phpunit": "^9.6" in its own require
+    block and has no PHPUnit 10 branch, so asking for "^9.6|^10.0" alongside
+    it always resolved to 9.6. Brain Monkey declares no PHPUnit constraint at
+    all, which is what freed this.
+-->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
-         cacheResultFile=".phpunit.result.cache"
+         cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
          failOnRisky="true"
          failOnWarning="true">
@@ -13,7 +23,7 @@
         </testsuite>
     </testsuites>
 
-    <coverage>
+    <source>
         <include>
             <directory suffix=".php">src</directory>
         </include>
@@ -23,10 +33,13 @@
                 enqueuing. WordPress admin render/menu/enqueue glue exercised
                 through the admin UI at runtime, not in unit tests — the same
                 exclusion the other suite plugins apply to their src/Admin layers.
+
+                Load-bearing: dropping this block on the move from <coverage>
+                to <source> would silently shift the Coveralls number.
             -->
             <directory suffix=".php">src/Admin</directory>
             <!-- Pure interface declarations: no executable behaviour to cover. -->
             <directory suffix=".php">src/Contracts</directory>
         </exclude>
-    </coverage>
+    </source>
 </phpunit>

@@ -10,26 +10,54 @@ declare(strict_types=1);
  * sign-up service. None of them touch WordPress, so no WP test harness is
  * needed — only Unity's Member interface, which ShiftSignup and
  * MemberPresenter type-hint.
+ *
+ * The WordPress stand-ins that are needed come from bleedingdeacons/wp-mocks,
+ * shared across the plugin suite, plus this plugin's own wp-stubs.php for the
+ * REST classes and the recording registrars the tests assert on.
  */
+
+use BleedingDeacons\WpMocks\Bootstrap;
+use BleedingDeacons\WpMocks\WpState;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-// WP_Mock intercepts the WordPress functions the WP-coupled classes call:
-// apply_filters, __, current_time and ACF's acf_add_validation_error.
+// Patchwork first, and nothing patchable before it.
 //
-// Bootstrapped immediately after the autoloader because this file defines no
-// WordPress functions of its own — there is nothing here for WP_Mock to
-// shadow. (Scrutiny's bootstrap does define some, and there the ordering
-// matters; see its comments.)
-WP_Mock::bootstrap();
+// It rewrites functions as their defining file is included, so anything
+// defined ahead of it can never be overridden per-test afterwards; Brain
+// Monkey only requires it lazily inside Monkey\setUp(), by which point the
+// stubs below exist. Symptom otherwise: Patchwork\Exceptions\DefinedTooEarly.
+Bootstrap::loadPatchwork();
+
+WpState::$pluginSlug = 'trusted';
 
 if (!defined('ABSPATH')) {
     define('ABSPATH', dirname(__DIR__) . '/');
 }
 
-// WordPress REST/HTTP class stubs (WP_Error, WP_REST_*), which WP_Mock does not
-// provide, plus a couple of pure passthrough helpers.
+// This plugin's own stubs: the WP_REST_* classes, and recording registrars
+// whose $GLOBALS the tests assert on directly. They come *before* the shared
+// layer so those keep winning — the shared register_post_type() and
+// register_rest_route() record somewhere else.
 require_once __DIR__ . '/wp-stubs.php';
+
+// The shared stub layer, loaded last as a backstop for everything above it
+// does not define — __(), the escaping helpers, the option store. Every
+// definition in it is function_exists()-guarded.
+//
+// Note what is *not* in it: add_action, add_filter and the rest of the hook
+// layer, which Brain Monkey owns and defines inside its own setUp(). That is
+// why the WordPress-coupled tests must extend Trusted\Tests\TestCase.
+//
+// The `acf` group is deliberately left out. TemplateApplicator::fieldValue()
+// and writeFieldValue() branch on function_exists('get_field') /
+// ('update_field') and fall back to post meta when ACF is absent — which is
+// the branch this suite covers, stubbing get_post_meta()/update_post_meta().
+// Loading the group would define those functions, silently sending every
+// template test down the untested ACF path instead. acf_add_validation_error()
+// needs no stub either: Brain Monkey defines a function outright when a test
+// sets an expectation on it.
+Bootstrap::load(['wordpress']);
 
 // ──────────────────────────────────────────────
 //  Unity's Member interface
