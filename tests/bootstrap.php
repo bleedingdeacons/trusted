@@ -8,8 +8,9 @@ declare(strict_types=1);
  * The suite covers the parts of the plugin that are pure PHP: the template
  * grammar, the domain value objects, the row-to-object factories and the
  * sign-up service. None of them touch WordPress, so no WP test harness is
- * needed — only Unity's Member interface, which ShiftSignup and
- * MemberPresenter type-hint.
+ * needed — only Unity, whose interfaces ShiftSignup, MemberPresenter and
+ * TrustedServiceProvider type-hint, and whose Unity\Testing\Doubles the
+ * fixtures build on.
  *
  * The WordPress stand-ins that are needed come from bleedingdeacons/wp-mocks,
  * shared across the plugin suite, plus this plugin's own wp-stubs.php for the
@@ -60,83 +61,47 @@ require_once __DIR__ . '/wp-stubs.php';
 Bootstrap::load(['wordpress']);
 
 // ──────────────────────────────────────────────
-//  Unity's Member interface
+//  Unity
 //
-//  Loaded from a sibling Unity checkout when there is one — the layout CI
-//  uses, and the one a developer working across the suite will have. Falls
-//  back to a local stub so the suite still runs from a bare clone of this
-//  repo alone.
+//  Loaded from the sibling checkout — the layout CI arranges (see the
+//  "Checkout Unity" step in ci.yml) and the one a developer working across
+//  the suite has. Registering a PSR-4 autoloader over the whole tree, rather
+//  than requiring three named files, is what makes Unity\Testing\Doubles
+//  reachable: the fixtures below extend the Member stub Unity ships.
 //
-//  The stub must stay in step with Unity's real interface: a test double
-//  implementing a stale copy would satisfy the stub and fail against the
-//  real thing, which is exactly how Reach's suite came to be broken.
+//  There used to be an eval() fallback here defining Member, MemberRepository
+//  and ResponderCertification inline, so the suite would run from a bare
+//  clone of this repo alone. It is gone, and deliberately:
+//
+//    - it was a hand-copy of a contract owned elsewhere, kept in step by
+//      discipline. Its own comment said "the stub must stay in step with
+//      Unity's real interface ... which is exactly how Reach's suite came to
+//      be broken";
+//    - it never ran in CI, which always has ../unity, so nothing would have
+//      caught it going stale;
+//    - the doubles now come from Unity too, and no hand-copied interface can
+//      supply those.
+//
+//  A bare clone therefore fails fast, with the message below, instead of
+//  quietly testing against a contract nobody maintains.
 // ──────────────────────────────────────────────
-$unityMember = dirname(__DIR__, 2) . '/unity/src/Members/Interfaces/Member.php';
+$unitySrc = dirname(__DIR__, 2) . '/unity/src';
 
-if (is_file($unityMember)) {
-    require_once dirname(__DIR__, 2) . '/unity/src/Members/ResponderCertification.php';
-    require_once $unityMember;
-    require_once dirname(__DIR__, 2) . '/unity/src/Members/Interfaces/MemberRepository.php';
+if (!is_dir($unitySrc)) {
+    fwrite(STDERR, PHP_EOL . 'ERROR: Unity plugin source not found at ' . $unitySrc . PHP_EOL
+        . "Trusted is built on Unity's interfaces and test doubles, so the Unity" . PHP_EOL
+        . 'plugin must be checked out as a sibling directory for this suite to run.' . PHP_EOL . PHP_EOL);
+    exit(1);
+}
 
-    // Unity's container contract, which TrustedServiceProvider registers against.
-    $unityContainer = dirname(__DIR__, 2) . '/unity/src/Core/Interfaces/Container.php';
-    if (is_file($unityContainer) && !interface_exists(\Unity\Core\Interfaces\Container::class)) {
-        require_once $unityContainer;
+spl_autoload_register(static function (string $class) use ($unitySrc): void {
+    if (!str_starts_with($class, 'Unity\\')) {
+        return;
     }
-} elseif (!interface_exists(\Unity\Members\Interfaces\Member::class)) {
-    eval(<<<'PHP'
-namespace Unity\Members;
 
-enum ResponderCertification: string
-{
-    case None = 'None';
-    case Applied = 'Applied';
-    case InTraining = 'In Training';
-    case Pending = 'Pending';
-    case Certified = 'Certified';
-}
+    $file = $unitySrc . '/' . str_replace('\\', '/', substr($class, strlen('Unity\\'))) . '.php';
 
-namespace Unity\Members\Interfaces;
-
-interface Member
-{
-    public function getId(): int;
-    public function getAnonymousName(): string;
-    public function showAnonymousName(): bool;
-    public function showMemberProfile(): bool;
-    public function getAnonymousProfile(): string;
-    public function getIntergroupPosition(): int;
-    public function getIntergroupPositionRotation(): string;
-    public function getHomeGroup(): int;
-    public function isGSR(): bool;
-    public function getMeetingPO(): mixed;
-    public function getPersonalEmail(): string;
-    public function getMobileNumber(): string;
-    public function isTwelfthStepper(): bool;
-    public function isTelephoneResponder(): bool;
-    public function getResponderCertification(): \Unity\Members\ResponderCertification;
-    public function getArea(): string;
-    public function getAccepts(): array;
-    public function isGdprAccepted(): bool;
-    public function getGdprAcceptedAt(): string;
-    public function getGdprAcceptanceVersion(): string;
-    public function getGdprAcceptanceMethod(): string;
-    public function getGdprAcceptanceStatement(): string;
-    public function getUpdated(): string;
-}
-
-interface MemberRepository
-{
-    public function findById(int $id): ?Member;
-    public function findByEmail(string $email): ?Member;
-    public function findAll(array $args = []): array;
-    public function findTelephoneResponders(): array;
-    public function count(array $args = []): int;
-    public function create(string $anonymousName): int;
-    public function save(Member $member): bool;
-    public function delete(int $id): bool;
-    public function update(Member $member): bool;
-}
-PHP
-    );
-}
+    if (is_file($file)) {
+        require_once $file;
+    }
+});

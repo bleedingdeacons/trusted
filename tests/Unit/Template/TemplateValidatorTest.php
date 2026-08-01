@@ -9,7 +9,7 @@ use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplateParser;
 use Trusted\Template\TemplateValidator;
-use Trusted\Tests\Fixtures\InMemoryMemberRepository;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 use Unity\Members\Interfaces\Member as UnityMember;

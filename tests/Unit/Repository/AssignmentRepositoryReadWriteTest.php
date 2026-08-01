@@ -7,7 +7,7 @@ namespace Trusted\Tests\Unit\Repository;
 use Mockery;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Repository\AssignmentRepository;
-use Trusted\Tests\Fixtures\InMemoryMemberRepository;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 

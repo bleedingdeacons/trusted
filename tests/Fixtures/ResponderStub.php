@@ -4,140 +4,44 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Fixtures;
 
-use Unity\Members\Interfaces\Member as UnityMember;
-use Unity\Members\ResponderCertification;
+use Unity\Testing\Doubles\MemberStub;
 
 /**
- * A Unity member for tests.
+ * A Unity member, defaulted the way Trusted's tests want one.
  *
- * Implements Unity's real interface rather than a copy, so a change to that
- * contract surfaces here as an unimplemented-method error rather than silent
- * drift. Only the fields Trusted actually reads are parameterised; the rest
- * return fixed values.
+ * The 23 accessors of Unity\Members\Interfaces\Member come from the stub Unity
+ * ships (see Unity\Testing\Doubles\MemberStub), so a change to that contract
+ * surfaces in Unity's own build rather than as silent drift here — the same
+ * guarantee this class used to buy by implementing the interface directly, at
+ * 143 lines instead of these few.
+ *
+ * What is left is only what is specific to Trusted: a member is a telephone
+ * responder unless a test says otherwise, because nearly every test here is
+ * about responders, and the identity fields carry values rather than empty
+ * strings so assertions read as names instead of blanks.
+ *
+ * Keeping those defaults local is the point of the split. They belong to this
+ * suite, not to Unity, whose stub defaults everything to empty/false so it
+ * stays neutral for the other plugins.
  */
-final class ResponderStub implements UnityMember
+final class ResponderStub extends MemberStub
 {
     public function __construct(
-        private int $id = 1,
-        private bool $telephoneResponder = true,
-        private string $anonymousName = 'John D',
-        private string $personalEmail = 'john@example.test',
-        private string $mobileNumber = '07700 900123',
+        int $id = 1,
+        bool $telephoneResponder = true,
+        string $anonymousName = 'John D',
+        string $personalEmail = 'john@example.test',
+        string $mobileNumber = '07700 900123',
     ) {
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function isTelephoneResponder(): bool
-    {
-        return $this->telephoneResponder;
-    }
-
-    public function getAnonymousName(): string
-    {
-        return $this->anonymousName;
-    }
-
-    public function getPersonalEmail(): string
-    {
-        return $this->personalEmail;
-    }
-
-    public function getMobileNumber(): string
-    {
-        return $this->mobileNumber;
-    }
-
-    public function showAnonymousName(): bool
-    {
-        return true;
-    }
-
-    public function showMemberProfile(): bool
-    {
-        return true;
-    }
-
-    public function getAnonymousProfile(): string
-    {
-        return '';
-    }
-
-    public function getIntergroupPosition(): int
-    {
-        return 0;
-    }
-
-    public function getIntergroupPositionRotation(): string
-    {
-        return '';
-    }
-
-    public function getHomeGroup(): int
-    {
-        return 0;
-    }
-
-    public function isGSR(): bool
-    {
-        return false;
-    }
-
-    public function getMeetingPO(): mixed
-    {
-        return null;
-    }
-
-    public function isTwelfthStepper(): bool
-    {
-        return false;
-    }
-
-    public function getResponderCertification(): ResponderCertification
-    {
-        return ResponderCertification::None;
-    }
-
-    public function getArea(): string
-    {
-        return '';
-    }
-
-    public function getAccepts(): array
-    {
-        return [];
-    }
-
-    public function isGdprAccepted(): bool
-    {
-        return true;
-    }
-
-    public function getGdprAcceptedAt(): string
-    {
-        return '';
-    }
-
-    public function getGdprAcceptanceVersion(): string
-    {
-        return '';
-    }
-
-    public function getGdprAcceptanceMethod(): string
-    {
-        return '';
-    }
-
-    public function getGdprAcceptanceStatement(): string
-    {
-        return '';
-    }
-
-    public function getUpdated(): string
-    {
-        return '';
+        parent::__construct(
+            id: $id,
+            anonymousName: $anonymousName,
+            showAnonymousName: true,
+            showMemberProfile: true,
+            personalEmail: $personalEmail,
+            mobileNumber: $mobileNumber,
+            telephoneResponder: $telephoneResponder,
+            gdprAccepted: true,
+        );
     }
 }

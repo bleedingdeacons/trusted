@@ -14,7 +14,7 @@ use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateApplicator;
 use Trusted\Template\TemplateParser;
 use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
-use Trusted\Tests\Fixtures\InMemoryMemberRepository;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
