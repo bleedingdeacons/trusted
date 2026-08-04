@@ -7,7 +7,7 @@
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Requires Plugins:  unity, scrutiny, beacon
- * GitHub Plugin URI: https://github.com/thebleedingdeacons/trusted
+ * GitHub Plugin URI: https://github.com/bleedingdeacons/trusted
  * GitHub Branch:     main
  * Author:            The Bleeding Deacons
  * Contact:           thebleedingdeacons@gmail.com

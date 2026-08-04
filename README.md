@@ -22,7 +22,7 @@ A 7-day telephone shift **rota manager** for WordPress.
 - Rota and assignment data lives in **custom database tables** behind an
   interface / factory / repository layer — *not* a custom post type — so week
   reads are a single indexed range scan rather than slow meta joins.
-- **Built on [Unity](https://github.com/thebleedingdeacons/unity).** Trusted
+- **Built on [Unity](https://github.com/bleedingdeacons/unity).** Trusted
   registers its services into Unity's dependency container (the same pattern as
   Amber) and sources members directly from Unity's `MemberRepository`, filtered
   to telephone responders.
