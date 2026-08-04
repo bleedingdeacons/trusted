@@ -75,20 +75,32 @@ final class DeveloperPage
 
         check_admin_referer(self::ACTION);
 
+        [$status, $deleted, $week] = $this->deleteWeekFromRequest();
+
+        $this->redirectBack($status, $deleted, $week);
+    }
+
+    /**
+     * The body of handleDeleteWeek(), minus the guards and the redirect.
+     *
+     * Split out because the live method ends in redirect-and-exit and so
+     * cannot run to completion in-process; this half can be driven directly.
+     *
+     * @return array{0: string, 1: int, 2: string} status, slots deleted, week
+     */
+    private function deleteWeekFromRequest(): array
+    {
         $week   = isset($_POST['week']) ? sanitize_text_field(wp_unslash((string) $_POST['week'])) : '';
         $monday = $this->mondayOf($week);
 
         if ($monday === null) {
-            $this->redirectBack('invalid', 0, '');
-
-            return;
+            return ['invalid', 0, ''];
         }
 
         /** @var RotaRepositoryInterface $rota */
-        $rota    = $this->container->get(RotaRepositoryInterface::class);
-        $deleted = $rota->deleteWeek($monday);
+        $rota = $this->container->get(RotaRepositoryInterface::class);
 
-        $this->redirectBack('deleted', $deleted, $monday);
+        return ['deleted', $rota->deleteWeek($monday), $monday];
     }
 
     /**
@@ -108,20 +120,30 @@ final class DeveloperPage
 
         check_admin_referer(self::ACTION_ALL);
 
+        [$status, $deleted, $week] = $this->clearAllFromRequest();
+
+        $this->redirectBack($status, $deleted, $week);
+    }
+
+    /**
+     * The body of handleClearAll(), minus the guards and the redirect. Split
+     * out for the same reason as {@see deleteWeekFromRequest()}.
+     *
+     * @return array{0: string, 1: int, 2: string} status, slots deleted, week
+     */
+    private function clearAllFromRequest(): array
+    {
         // Require a typed confirmation so this can't fire by accident.
         $confirm = isset($_POST['confirm']) ? sanitize_text_field(wp_unslash((string) $_POST['confirm'])) : '';
 
         if (strtoupper($confirm) !== 'DELETE') {
-            $this->redirectBack('not_confirmed', 0, '');
-
-            return;
+            return ['not_confirmed', 0, ''];
         }
 
         /** @var RotaRepositoryInterface $rota */
-        $rota    = $this->container->get(RotaRepositoryInterface::class);
-        $deleted = $rota->deleteAll();
+        $rota = $this->container->get(RotaRepositoryInterface::class);
 
-        $this->redirectBack('cleared', $deleted, '');
+        return ['cleared', $rota->deleteAll(), ''];
     }
 
     public function render(): void
@@ -259,7 +281,18 @@ final class DeveloperPage
 
     private function redirectBack(string $status, int $deleted, string $week): void
     {
-        wp_safe_redirect(add_query_arg(
+        wp_safe_redirect($this->redirectUrl($status, $deleted, $week));
+        exit;
+    }
+
+    /**
+     * The URL redirectBack() sends the browser to. Separate from the redirect
+     * itself so the query args it carries — the ones maybeRenderNotice() reads
+     * back on the next request — can be asserted without running the exit.
+     */
+    private function redirectUrl(string $status, int $deleted, string $week): string
+    {
+        return add_query_arg(
             [
                 'page'            => self::SLUG,
                 'trusted_status'  => $status,
@@ -267,8 +300,7 @@ final class DeveloperPage
                 'trusted_week'    => rawurlencode($week),
             ],
             admin_url('admin.php')
-        ));
-        exit;
+        );
     }
 
     /**
