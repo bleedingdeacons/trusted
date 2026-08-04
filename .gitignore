@@ -1,6 +1,5 @@
 # Composer
 /vendor/
-composer.lock
 
 # Build artifacts
 /build/
@@ -27,3 +26,11 @@ Thumbs.db
 # phpstan.neon.dist outright — PHPStan takes the first file it finds and does
 # not merge them. Ignored so a personal tweak cannot be committed by accident.
 /phpstan.neon
+
+# composer.lock is COMMITTED, deliberately - do not add it here.
+#
+# It was ignored across the whole suite until 2026-08-02. That made CI
+# resolve dependencies afresh on every run, so the tool versions a build
+# used were whatever had been published that morning, and Dependabot could
+# only see releases falling outside the composer.json constraints. A
+# PHPStan patch that broke the committed baseline was invisible to both.
