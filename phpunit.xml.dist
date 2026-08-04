@@ -29,15 +29,20 @@
         </include>
         <exclude>
             <!--
-                Admin screens: the calendar/developer/help pages and asset
-                enqueuing. WordPress admin render/menu/enqueue glue exercised
-                through the admin UI at runtime, not in unit tests — the same
-                exclusion the other suite plugins apply to their src/Admin layers.
+                src/Admin is deliberately NOT excluded. It was, on the grounds
+                that admin screens are "render/menu/enqueue glue exercised
+                through the admin UI at runtime" — the same exclusion most of
+                the suite applied to its admin layer. Amber disproved it by
+                covering its entire src/Admin on this tooling, Integrity
+                followed, and tests/Unit/Admin now does the same here:
+                registration is asserted against WpState, capability guards
+                against the WpDieException the shared wp_die() throws, and the
+                render methods are driven for real inside an output buffer.
 
-                Load-bearing: dropping this block on the move from <coverage>
-                to <source> would silently shift the Coveralls number.
+                Do not re-add it. If a class here looks untestable, the reason
+                is almost always a redirect-and-exit — see the note in
+                DeveloperPageTest on splitting the work out from behind it.
             -->
-            <directory suffix=".php">src/Admin</directory>
             <!-- Pure interface declarations: no executable behaviour to cover. -->
             <directory suffix=".php">src/Contracts</directory>
         </exclude>

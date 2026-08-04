@@ -23,6 +23,14 @@ if (!defined('TRUSTED_TEMPLATE_POST_TYPE')) {
 if (!defined('TRUSTED_VERSION')) {
     define('TRUSTED_VERSION', '1.0.0-test');
 }
+// trusted.php derives these from __FILE__ and plugin_dir_url(); the admin
+// layer reads them when enqueueing assets and linking to the bundled guide.
+if (!defined('TRUSTED_FILE')) {
+    define('TRUSTED_FILE', dirname(__DIR__) . '/trusted.php');
+}
+if (!defined('TRUSTED_URL')) {
+    define('TRUSTED_URL', 'https://example.test/wp-content/plugins/trusted/');
+}
 
 if (!function_exists('current_time')) {
     function current_time(string $type, int $gmt = 0): string
