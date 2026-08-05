@@ -1,12 +1,12 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Fired when the plugin is deleted from the WordPress admin.
  *
  * @package Trusted
  */
+
+declare(strict_types=1);
 
 if (! defined('WP_UNINSTALL_PLUGIN')) {
     exit;
