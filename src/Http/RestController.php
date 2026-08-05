@@ -551,8 +551,10 @@ final class RestController
         // 24:00 is allowed as an end-of-day marker. Otherwise accept 00:00–23:59,
         // working to the minute. An optional seconds component (some clients send
         // "HH:MM:SS") is accepted but dropped, always returning "H:i".
-        if (preg_match('/^(24):(00)(?::00)?$/', $value, $m)
-            || preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)) {
+        if (
+            preg_match('/^(24):(00)(?::00)?$/', $value, $m)
+            || preg_match('/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $value, $m)
+        ) {
             return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
         }
 

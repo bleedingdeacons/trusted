@@ -121,8 +121,10 @@ final class Plugin
      */
     public function forwardingService(): ?CallForwardingService
     {
-        if ($this->beaconContainer === null
-            || ! $this->beaconContainer->has(CallForwardingService::class)) {
+        if (
+            $this->beaconContainer === null
+            || ! $this->beaconContainer->has(CallForwardingService::class)
+        ) {
             return null;
         }
 
