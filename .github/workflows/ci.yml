@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: trusted
 
@@ -31,7 +31,7 @@ jobs:
         # Trusted registers its repositories into Unity's container and
         # type-hints Unity's interfaces throughout. Unity is not a composer
         # dependency, so without this PHPStan cannot resolve any of them.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: bleedingdeacons/unity
           ref: main
@@ -40,7 +40,7 @@ jobs:
       - name: Checkout Beacon
         # Optional at runtime, but CallForwardingService appears in a return
         # type, so it has to resolve.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: bleedingdeacons/beacon
           ref: main
@@ -62,7 +62,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           # Keyed on composer.json: composer.lock is untracked in several of
           # these repos, so it is not a reliable cache key across the suite.
