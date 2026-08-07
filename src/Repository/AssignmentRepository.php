@@ -19,6 +19,10 @@ use wpdb;
 final class AssignmentRepository implements AssignmentRepositoryInterface
 {
     private wpdb $db;
+
+    /**
+     * @var literal-string See RotaRepository::$table.
+     */
     private string $table;
 
     public function __construct(

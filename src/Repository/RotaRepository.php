@@ -21,6 +21,12 @@ use wpdb;
 final class RotaRepository implements RotaRepositoryInterface
 {
     private wpdb $db;
+
+    /**
+     * @var literal-string Carried through from Database::rotaTable(); a bare
+     *                     `string` property would erase that and every
+     *                     prepare() below would be rejected.
+     */
     private string $table;
 
     public function __construct(
