@@ -12,18 +12,42 @@ final class Database
     public const ROTA        = 'trusted_rota';
     public const ASSIGNMENTS = 'trusted_assignments';
 
+    /**
+     * @return literal-string
+     *
+     * wpdb::prepare() only accepts a literal-string query, and the repositories
+     * interpolate this into every one of theirs. PHPStan types $wpdb->prefix as
+     * a plain string so it cannot derive that on its own — the assertion below
+     * supplies it, and it holds: the prefix comes from wp-config.php and the
+     * table name is a class constant, so no part is reachable from user input.
+     *
+     * Asserted on the prefix rather than on the concatenation, because PHPStan
+     * infers the joined string as non-falsy-string and literal-string is not a
+     * subtype of that, so a @var on the result is rejected outright.
+     */
     public static function rotaTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . self::ROTA;
+        /** @var literal-string $prefix */
+        $prefix = $wpdb->prefix;
+
+        return $prefix . self::ROTA;
     }
 
+    /**
+     * @return literal-string
+     *
+     * See rotaTable() on why the assertion is needed and why it holds.
+     */
     public static function assignmentsTable(): string
     {
         global $wpdb;
 
-        return $wpdb->prefix . self::ASSIGNMENTS;
+        /** @var literal-string $prefix */
+        $prefix = $wpdb->prefix;
+
+        return $prefix . self::ASSIGNMENTS;
     }
 
     /**
