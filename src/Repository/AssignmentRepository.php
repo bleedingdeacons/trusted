@@ -112,14 +112,21 @@ final class AssignmentRepository implements AssignmentRepositoryInterface
         // second concurrent sign-up for the same slot is silently rejected
         // (0 rows affected) rather than racing past an application-level
         // emptiness check. This is the source of truth for "one per slot".
-        $affected = $this->db->query(
-            $this->db->prepare(
-                "INSERT IGNORE INTO {$this->table} (rota_id, member_id, notes) VALUES (%d, %s, %s)",
-                $rotaId,
-                $memberId,
-                $notes
-            )
+        $sql = $this->db->prepare(
+            "INSERT IGNORE INTO {$this->table} (rota_id, member_id, notes) VALUES (%d, %s, %s)",
+            $rotaId,
+            $memberId,
+            $notes
         );
+
+        // prepare() is typed string|null — null when the placeholders and the
+        // arguments disagree. That is already the "or the insert failed" case
+        // this method reports as null, so it needs no separate signal.
+        if ($sql === null) {
+            return null;
+        }
+
+        $affected = $this->db->query($sql);
 
         if (! is_int($affected) || $affected < 1 || (int) $this->db->insert_id < 1) {
             return null; // slot already taken (or the insert failed)
