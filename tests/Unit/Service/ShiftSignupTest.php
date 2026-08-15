@@ -10,8 +10,8 @@ use Trusted\Domain\Assignment;
 use Trusted\Domain\Member;
 use Trusted\Domain\Rota;
 use Trusted\Service\ShiftSignup;
-use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
-use Trusted\Tests\Fixtures\InMemoryRotaRepository;
+use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
+use Trusted\Testing\Doubles\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 
 /**

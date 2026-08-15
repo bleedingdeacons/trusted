@@ -7,8 +7,8 @@ namespace Trusted\Tests\Unit\Http;
 use Brain\Monkey\Filters;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
-use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
-use Trusted\Tests\Fixtures\InMemoryRotaRepository;
+use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
+use Trusted\Testing\Doubles\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 

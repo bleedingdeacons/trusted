@@ -2,13 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Trusted\Tests\Fixtures;
+namespace Trusted\Testing\Doubles;
 
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Domain\Assignment;
 
 /**
  * An in-memory AssignmentRepository for tests.
+ *
+ * Shipped from src/ rather than kept under tests/ so that consuming plugins
+ * can use it too — see the note on {@see InMemoryRotaRepository}.
  *
  * assignIfOpen() is the interesting one: in production the atomicity comes
  * from a UNIQUE(rota_id) constraint, and a null return means the slot was
@@ -42,15 +45,31 @@ final class InMemoryAssignmentRepository implements AssignmentRepositoryInterfac
     }
 
     /**
+     * Bulk-load assignments for many slots at once, keyed by rota_id.
+     *
+     * The keying is the contract, and this returned a flat list until the
+     * class moved into src/ and PHPStan started analysing it. Nothing here
+     * caught it: no test in this suite exercises the bulk path through the
+     * double, so the wrong shape sat behind a correct-looking signature. A
+     * consumer eager-loading a week's assignments would have got a list
+     * indexed 0..n and quietly found nothing under any rota id.
+     *
      * @param int[] $rotaIds
-     * @return Assignment[]
+     * @return array<int, Assignment[]>
      */
     public function findByRotaIds(array $rotaIds): array
     {
-        return array_values(array_filter(
-            $this->assignments,
-            static fn (Assignment $a): bool => in_array($a->rotaId(), $rotaIds, true)
-        ));
+        $byRota = [];
+
+        foreach ($this->assignments as $assignment) {
+            if (!in_array($assignment->rotaId(), $rotaIds, true)) {
+                continue;
+            }
+
+            $byRota[$assignment->rotaId()][] = $assignment;
+        }
+
+        return $byRota;
     }
 
     public function save(Assignment $assignment): Assignment

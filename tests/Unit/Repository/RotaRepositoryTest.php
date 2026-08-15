@@ -7,7 +7,7 @@ namespace Trusted\Tests\Unit\Repository;
 use Mockery;
 use Trusted\Factory\RotaFactory;
 use Trusted\Repository\RotaRepository;
-use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
+use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
 use Trusted\Tests\TestCase;
 
 /**
