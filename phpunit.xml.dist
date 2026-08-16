@@ -45,6 +45,16 @@
             -->
             <!-- Pure interface declarations: no executable behaviour to cover. -->
             <directory suffix=".php">src/Contracts</directory>
+
+            <!--
+                Test doubles Trusted ships for its own suite and for consuming
+                plugins. They live under src/ so they autoload through the
+                Trusted\ prefix in a consumer's test run, but they are test
+                infrastructure rather than production behaviour, and counting
+                them would distort the denominator exactly as src/Contracts
+                would. Matches Unity's exclusion of src/Testing.
+            -->
+            <directory suffix=".php">src/Testing</directory>
         </exclude>
     </source>
 </phpunit>

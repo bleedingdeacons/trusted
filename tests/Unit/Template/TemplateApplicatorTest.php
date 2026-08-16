@@ -11,9 +11,9 @@ use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateApplicator;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplateParser;
-use Trusted\Tests\Fixtures\InMemoryAssignmentRepository;
+use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
 use Unity\Testing\Doubles\InMemoryMemberRepository;
-use Trusted\Tests\Fixtures\InMemoryRotaRepository;
+use Trusted\Testing\Doubles\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 use Trusted\Tests\TestCase;
 
