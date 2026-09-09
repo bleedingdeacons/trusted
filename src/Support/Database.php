@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Support;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Central source of truth for custom table names and schema.
  */

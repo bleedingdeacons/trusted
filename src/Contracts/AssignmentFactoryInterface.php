@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Contracts;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Domain\Assignment;
 
 interface AssignmentFactoryInterface

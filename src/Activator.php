@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Support\Database;
 use Trusted\Template\TemplatePostType;
 

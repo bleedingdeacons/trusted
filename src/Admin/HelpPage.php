@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Admin;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Adds a "Help" submenu under the Trusted menu that opens the standalone
  * Trusted user guide (assets/docs/trusted.html).

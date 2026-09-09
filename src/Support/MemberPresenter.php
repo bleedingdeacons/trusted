@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Support;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Domain\Member;
 use Unity\Members\Interfaces\Member as UnityMember;
 

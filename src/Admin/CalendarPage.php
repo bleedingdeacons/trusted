@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Admin;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Registers the top-level "Trusted" admin menu and renders the calendar shell.
  * The actual calendar is rendered client-side (assets/js/calendar.js) against

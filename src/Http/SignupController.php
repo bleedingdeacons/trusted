@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Http;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Service\ShiftSignup;
 use Unity\Members\Interfaces\Member as UnityMember;
 use WP_Error;

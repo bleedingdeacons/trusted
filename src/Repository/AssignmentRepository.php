@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Repository;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Contracts\AssignmentFactoryInterface;
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Domain\Assignment;
