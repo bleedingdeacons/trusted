@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Service;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use InvalidArgumentException;
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;

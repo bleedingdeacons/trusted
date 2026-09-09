@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Domain;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * A single shift definition coming from a weekly template (not yet scheduled
  * against a concrete date). Times are 24-hour "H:i" strings.

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Template;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Registers the ACF field group for shift templates.
  *

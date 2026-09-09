@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 final class Deactivator
 {
     public static function deactivate(): void

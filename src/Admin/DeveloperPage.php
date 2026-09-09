@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Admin;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 use Trusted\Contracts\RotaRepositoryInterface;
 use Unity\Core\Interfaces\Container;
 

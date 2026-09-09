@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Domain;
 
+// Prevent direct access
+if (! defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * The person assigned to a shift.
  *
