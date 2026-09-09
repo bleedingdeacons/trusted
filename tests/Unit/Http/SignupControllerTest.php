@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Trusted\Tests\Unit\Http;
 
 use Brain\Monkey\Filters;
+use Brain\Monkey\Functions;
+use Mockery;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
 use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
@@ -72,6 +74,111 @@ final class SignupControllerTest extends TestCase
         self::assertTrue($this->makeController()->can());
     }
 
+    // ── canWrite(): the anti-CSRF gate on the state-changing routes ────
+
+    /**
+     * @test
+     */
+    public function a_write_is_refused_when_nothing_vouches_for_the_request(): void
+    {
+        // A signed-in responder, but no sibling answered the verify filter.
+        // Its default is false, so the write is refused: this is the case a
+        // cross-site POST arrives in, carrying the session cookie the browser
+        // attached by itself but no token it could not have read.
+        Filters\expectApplied('trusted_signup_member')
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
+        Filters\expectApplied('trusted_signup_verify_request')->andReturn(false);
+
+        self::assertFalse($this->makeController()->canWrite($this->request()));
+    }
+
+    /**
+     * @test
+     */
+    public function a_write_is_allowed_when_a_sibling_vouches_for_the_request(): void
+    {
+        Filters\expectApplied('trusted_signup_member')
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
+        Filters\expectApplied('trusted_signup_verify_request')->andReturn(true);
+
+        self::assertTrue($this->makeController()->canWrite($this->request()));
+    }
+
+    /**
+     * @test
+     */
+    public function a_verified_request_from_someone_not_signed_in_is_still_refused(): void
+    {
+        // The token gate is in addition to the member gate, never instead of
+        // it. A sibling wrongly returning true must not admit a stranger.
+        Filters\expectApplied('trusted_signup_member')->andReturn(null);
+
+        self::assertFalse($this->makeController()->canWrite($this->request()));
+    }
+
+    /**
+     * @test
+     */
+    public function a_write_is_refused_for_a_member_who_is_not_a_responder_however_well_verified(): void
+    {
+        Filters\expectApplied('trusted_signup_member')
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: false));
+
+        self::assertFalse($this->makeController()->canWrite($this->request()));
+    }
+
+    /**
+     * @test
+     * @dataProvider truthyProvider
+     */
+    public function only_a_real_yes_opens_the_write_gate(mixed $answer, bool $expected, string $why): void
+    {
+        Filters\expectApplied('trusted_signup_member')
+            ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
+        Filters\expectApplied('trusted_signup_verify_request')->andReturn($answer);
+
+        self::assertSame($expected, $this->makeController()->canWrite($this->request()), $why);
+    }
+
+    /**
+     * @return array<string, array{0:mixed,1:bool,2:string}>
+     */
+    public static function truthyProvider(): array
+    {
+        return [
+            'true'         => [true, true, 'The one answer that means verified.'],
+            'false'        => [false, false, 'The default.'],
+            'null'         => [null, false, 'A filter that returns nothing must not open the gate.'],
+            'empty string' => ['', false, 'Nor an empty answer.'],
+            'zero'         => [0, false, 'Nor a falsy number.'],
+        ];
+    }
+
+    /**
+     * @test
+     */
+    public function the_write_routes_are_gated_by_canWrite_and_the_read_by_can(): void
+    {
+        // Guards the wiring rather than the gate: a route registered against
+        // can() instead of canWrite() would pass every test above and still
+        // be forgeable.
+        $routes = [];
+        Functions\when('register_rest_route')->alias(
+            static function ($namespace, $route, $args) use (&$routes): bool {
+                $routes[$route] = $args['permission_callback'][1];
+
+                return true;
+            }
+        );
+        Functions\when('add_filter')->justReturn(true);
+
+        $this->makeController()->registerRoutes();
+
+        self::assertSame('can', $routes['/signup/shifts/(?P<date>\d{4}-\d{2}-\d{2})'], 'The read is not a state change.');
+        self::assertSame('canWrite', $routes['/signup'], 'POST /signup changes helpline coverage.');
+        self::assertSame('canWrite', $routes['/signup/(?P<rota>\d+)'], 'DELETE takes a responder off a shift.');
+    }
+
     /**
      * @test
      * @dataProvider dateProvider
@@ -98,6 +205,11 @@ final class SignupControllerTest extends TestCase
             'not a string'      => [20260720, false, 'Only strings are dates here.'],
             'null'              => [null, false, 'A missing parameter is not a date.'],
         ];
+    }
+
+    private function request(): \WP_REST_Request
+    {
+        return Mockery::mock('WP_REST_Request');
     }
 
     private function makeController(): SignupController

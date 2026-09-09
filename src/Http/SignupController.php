@@ -45,13 +45,13 @@ final class SignupController
         register_rest_route(self::NAMESPACE, '/signup', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [$this, 'signUp'],
-            'permission_callback' => [$this, 'can'],
+            'permission_callback' => [$this, 'canWrite'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/signup/(?P<rota>\d+)', [
             'methods'             => WP_REST_Server::DELETABLE,
             'callback'            => [$this, 'removeSignUp'],
-            'permission_callback' => [$this, 'can'],
+            'permission_callback' => [$this, 'canWrite'],
             'args'                => [
                 'rota' => ['validate_callback' => static fn ($value): bool => ctype_digit((string) $value)],
             ],
@@ -86,10 +86,53 @@ final class SignupController
 
     /**
      * Allow only when the request resolves to an authenticated responder.
+     *
+     * This is the gate for the read route. The writes use {@see canWrite()},
+     * which requires an anti-CSRF token as well.
      */
     public function can(): bool
     {
         return $this->actingMember() !== null;
+    }
+
+    /**
+     * Allow only an authenticated responder whose request also proves it was
+     * made deliberately, by them.
+     *
+     * `can()` alone is not enough for a state change here. The acting member
+     * is resolved from a sibling plugin's session *cookie*, so a browser
+     * attaches it to a cross-site request without the member doing anything
+     * — which makes POST /signup and DELETE /signup/{rota} forgeable. What
+     * stood between that and a silent change to helpline coverage was the
+     * cookie's own `SameSite=Lax`, one control owned by another plugin and
+     * defeated by an older browser, by Chrome's grace period on a
+     * freshly-set cookie (which opens exactly as a responder lands back from
+     * an OAuth redirect), and by anything on a sibling subdomain.
+     *
+     * Trusted cannot check the token itself without depending on the sibling
+     * that issued it, so it asks. The filter defaults to false: a request is
+     * refused unless something actively vouches for it. That cannot lock
+     * anyone out on its own — the member filter has the same shape, so
+     * without a sibling answering both, nobody was ever signed in to begin
+     * with.
+     */
+    public function canWrite(WP_REST_Request $request): bool
+    {
+        if (! $this->can()) {
+            return false;
+        }
+
+        /**
+         * Filters whether a sign-up write carries proof of intent.
+         *
+         * Sibling plugins that authenticate by cookie return true only when
+         * the request presents their own anti-CSRF token. The default false
+         * means "nothing vouched for this", which refuses the write.
+         *
+         * @param bool            $verified Whether the request is verified.
+         * @param WP_REST_Request $request  The request being authorised.
+         */
+        return (bool) apply_filters('trusted_signup_verify_request', false, $request);
     }
 
     public function shifts(WP_REST_Request $request): WP_REST_Response
