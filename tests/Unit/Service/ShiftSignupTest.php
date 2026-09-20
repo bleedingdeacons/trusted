@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Service;
 
+use PHPUnit\Framework\Attributes\Test;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Trusted\Domain\Assignment;
@@ -26,9 +27,7 @@ final class ShiftSignupTest extends TestCase
 {
     private const DATE = '2026-07-20';
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_refuses_to_assign_a_member_who_is_not_a_telephone_responder(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);
@@ -39,9 +38,7 @@ final class ShiftSignupTest extends TestCase
         $signup->assignResponder(new ResponderStub(id: 7, telephoneResponder: false), [1]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_refuses_to_remove_a_sign_up_for_a_member_who_is_not_a_responder(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);
@@ -51,9 +48,7 @@ final class ShiftSignupTest extends TestCase
         $signup->removeResponder(new ResponderStub(id: 7, telephoneResponder: false), 1);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_assigns_a_responder_to_an_open_shift(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);
@@ -66,9 +61,7 @@ final class ShiftSignupTest extends TestCase
         self::assertSame('Happy to cover', $result['assigned'][0]['notes']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_skips_a_shift_that_is_already_taken_rather_than_failing(): void
     {
         // One member per shift. The second sign-up is reported, not thrown:
@@ -86,9 +79,7 @@ final class ShiftSignupTest extends TestCase
         self::assertSame([['rota_id' => 1, 'reason' => 'full']], $result['skipped']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_skips_a_shift_that_does_not_exist(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);
@@ -99,9 +90,7 @@ final class ShiftSignupTest extends TestCase
         self::assertSame([['rota_id' => 404, 'reason' => 'not_found']], $result['skipped']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_de_duplicates_and_discards_non_positive_ids(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1), 2 => $this->rota(2)]);
@@ -114,9 +103,7 @@ final class ShiftSignupTest extends TestCase
         self::assertSame([], $result['skipped']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_removes_only_the_members_own_sign_up(): void
     {
         $assignments = new InMemoryAssignmentRepository([
@@ -133,9 +120,7 @@ final class ShiftSignupTest extends TestCase
         self::assertSame([], $assignments->findByRota(1));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_reports_an_open_shift_with_no_assignee(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);
@@ -148,9 +133,7 @@ final class ShiftSignupTest extends TestCase
         self::assertFalse($shifts[0]['is_mine']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_names_the_assignee_of_a_filled_shift_but_never_their_contact_details(): void
     {
         $member = new Member(id: '99', name: 'Jane S', email: 'jane@example.test', telephone: '07700 900999');
@@ -171,9 +154,7 @@ final class ShiftSignupTest extends TestCase
         self::assertStringNotContainsString('07700 900999', $encoded);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_flags_the_members_own_shift(): void
     {
         $member = new Member(id: '99', name: 'Jane S', email: '', telephone: '');
@@ -190,9 +171,7 @@ final class ShiftSignupTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_no_shifts_for_a_date_with_none(): void
     {
         $signup = $this->makeSignup([1 => $this->rota(1)]);

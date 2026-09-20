@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Trusted\Template\TemplateParser;
 
@@ -24,10 +26,8 @@ final class TemplateParserTest extends TestCase
         $this->parser = new TemplateParser();
     }
 
-    /**
-     * @test
-     * @dataProvider lineProvider
-     */
+    #[DataProvider('lineProvider')]
+    #[Test]
     public function it_parses_the_documented_line_shapes(
         string $line,
         string $start,
@@ -66,10 +66,8 @@ final class TemplateParserTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     * @dataProvider rejectedProvider
-     */
+    #[DataProvider('rejectedProvider')]
+    #[Test]
     public function it_rejects_lines_that_are_not_shifts(string $line): void
     {
         self::assertNull($this->parser->parseLine($line), "Expected to reject: {$line}");
@@ -91,9 +89,7 @@ final class TemplateParserTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_pads_hours_but_leaves_minutes_alone(): void
     {
         $shift = $this->parser->parseLine('7:05-9:30');
@@ -103,9 +99,7 @@ final class TemplateParserTest extends TestCase
         self::assertSame('09:30', $shift->endTime());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_parses_a_multi_line_template_and_drops_the_junk(): void
     {
         $raw = <<<TXT
@@ -124,10 +118,8 @@ final class TemplateParserTest extends TestCase
         self::assertSame('', $shifts[1]->member(), 'A line with no member carries an empty member.');
     }
 
-    /**
-     * @test
-     * @dataProvider lineEndingProvider
-     */
+    #[DataProvider('lineEndingProvider')]
+    #[Test]
     public function it_splits_on_any_line_ending(string $raw, string $description): void
     {
         self::assertCount(2, $this->parser->parse($raw), $description);
@@ -145,9 +137,7 @@ final class TemplateParserTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_leaves_a_missing_label_empty_rather_than_inventing_one(): void
     {
         // Deliberate: TemplateValidator rejects nameless lines at save time,
@@ -158,9 +148,7 @@ final class TemplateParserTest extends TestCase
         self::assertSame('', $shift->label());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_an_empty_array_for_an_empty_template(): void
     {
         self::assertSame([], $this->parser->parse(''));

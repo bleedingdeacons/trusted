@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Support;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Mockery\MockInterface;
 use Mockery;
 use ReflectionMethod;
 use Trusted\Support\Database;
@@ -12,12 +14,11 @@ use Trusted\Tests\TestCase;
 /**
  * Covers Database's table naming, install/uninstall and the unique-index
  * migration, against a Mockery wpdb.
- *
- * @covers \Trusted\Support\Database
  */
+#[CoversClass(\Trusted\Support\Database::class)]
 final class DatabaseTest extends TestCase
 {
-    /** @return \Mockery\MockInterface */
+    /** @return MockInterface */
     private function wpdb()
     {
         $db = Mockery::mock('wpdb');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Repository;
 
+use PHPUnit\Framework\Attributes\Test;
+use Mockery\MockInterface;
 use Mockery;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Repository\AssignmentRepository;
@@ -22,9 +24,7 @@ use Trusted\Tests\TestCase;
  */
 final class AssignmentRepositoryTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_the_assignment_when_the_insert_claims_the_slot(): void
     {
         $db = $this->wpdb();
@@ -41,9 +41,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertSame('Happy to cover', $assignment->notes());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_null_when_the_slot_was_already_taken(): void
     {
         // INSERT IGNORE affects zero rows when UNIQUE(rota_id) rejects it.
@@ -56,9 +54,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertNull($this->makeRepository($db)->assignIfOpen(12, '7', ''));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_null_when_the_query_fails_outright(): void
     {
         // wpdb::query() returns false on error. A failed insert must not be
@@ -71,9 +67,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertNull($this->makeRepository($db)->assignIfOpen(12, '7', ''));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_null_when_rows_were_affected_but_no_id_was_produced(): void
     {
         // Belt and braces: the guard checks both the affected count and the
@@ -86,9 +80,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertNull($this->makeRepository($db)->assignIfOpen(12, '7', ''));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_attaches_the_unity_member_to_a_successful_claim(): void
     {
         $db = $this->wpdb();
@@ -106,9 +98,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertSame('John D', $assignment->member()?->name());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_leaves_the_member_null_when_the_id_is_not_numeric(): void
     {
         // Member ids are stored as strings; a non-numeric one cannot be looked
@@ -124,9 +114,7 @@ final class AssignmentRepositoryTest extends TestCase
         self::assertNull($assignment->member());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_leaves_the_member_null_when_unity_does_not_know_the_id(): void
     {
         $db = $this->wpdb();
@@ -145,7 +133,7 @@ final class AssignmentRepositoryTest extends TestCase
      * construction. wpdb does not exist outside WordPress, so Mockery
      * generates the class as well as the double.
      *
-     * @return \Mockery\MockInterface
+     * @return MockInterface
      */
     private function wpdb()
     {

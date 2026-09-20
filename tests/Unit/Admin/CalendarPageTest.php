@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Admin;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use function Brain\Monkey\Filters\expectApplied;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Filters;
 use Trusted\Admin\CalendarPage;
 use Trusted\Tests\TestCase;
 
@@ -22,9 +24,8 @@ use Trusted\Tests\TestCase;
  * every add_menu_page()/add_submenu_page() call. render() is called inside an
  * output buffer and the markup asserted on — the mount point calendar.js
  * looks for is a contract with the JavaScript, not decoration.
- *
- * @covers \Trusted\Admin\CalendarPage
  */
+#[CoversClass(\Trusted\Admin\CalendarPage::class)]
 final class CalendarPageTest extends TestCase
 {
     private CalendarPage $page;
@@ -50,8 +51,7 @@ final class CalendarPageTest extends TestCase
     }
 
     // ── menu registration ─────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function it_registers_a_top_level_menu_and_a_submenu_on_the_same_slug(): void
     {
         $this->page->registerMenu();
@@ -71,7 +71,7 @@ final class CalendarPageTest extends TestCase
         $this->assertSame('Rota Calendar', $sub['title']);
     }
 
-    /** @test */
+    #[Test]
     public function the_menu_defaults_to_manage_options(): void
     {
         $this->page->registerMenu();
@@ -84,12 +84,11 @@ final class CalendarPageTest extends TestCase
     /**
      * The capability is filterable so an intergroup can hand the rota to a
      * custom role without granting full admin.
-     *
-     * @test
      */
+    #[Test]
     public function the_capability_is_filterable(): void
     {
-        Filters\expectApplied('trusted_capability')
+        expectApplied('trusted_capability')
             ->andReturn('edit_trusted_rota');
 
         $this->page->registerMenu();
@@ -100,14 +99,12 @@ final class CalendarPageTest extends TestCase
     }
 
     // ── the calendar shell ────────────────────────────────────────────
-
     /**
      * calendar.js mounts into #trusted-calendar and hangs the refresh button
      * off #trusted-title-actions. Renaming either here silently empties the
      * screen at runtime, so both ids are asserted.
-     *
-     * @test
      */
+    #[Test]
     public function it_renders_the_mount_points_the_calendar_script_looks_for(): void
     {
         $html = $this->render();
@@ -117,7 +114,7 @@ final class CalendarPageTest extends TestCase
         $this->assertStringContainsString('aria-live="polite"', $html);
     }
 
-    /** @test */
+    #[Test]
     public function it_renders_a_heading_and_a_loading_placeholder(): void
     {
         $html = $this->render();
@@ -126,7 +123,7 @@ final class CalendarPageTest extends TestCase
         $this->assertStringContainsString('Loading rota…', $html);
     }
 
-    /** @test */
+    #[Test]
     public function the_wrapper_divs_are_balanced(): void
     {
         $html = $this->render();
@@ -147,9 +144,8 @@ final class CalendarPageTest extends TestCase
      * acf_add_local_field_group() for TemplateFields' own tests, and PHP has
      * no way to undefine a function once declared, so function_exists() is
      * permanently true in-process.
-     *
-     * @test
      */
+    #[Test]
     public function no_acf_warning_is_shown_when_acf_is_available(): void
     {
         $this->assertTrue(

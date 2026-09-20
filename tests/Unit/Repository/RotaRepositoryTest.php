@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Repository;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Mockery\MockInterface;
 use Mockery;
 use Trusted\Factory\RotaFactory;
 use Trusted\Repository\RotaRepository;
@@ -12,12 +14,11 @@ use Trusted\Tests\TestCase;
 
 /**
  * Covers RotaRepository's $wpdb-backed reads and writes against a Mockery wpdb.
- *
- * @covers \Trusted\Repository\RotaRepository
  */
+#[CoversClass(\Trusted\Repository\RotaRepository::class)]
 final class RotaRepositoryTest extends TestCase
 {
-    /** @return \Mockery\MockInterface */
+    /** @return MockInterface */
     private function wpdb()
     {
         $db = Mockery::mock('wpdb');

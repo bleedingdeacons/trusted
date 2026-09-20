@@ -5,7 +5,7 @@
  * Description:       A 7-day telephone shift rota manager built on the Unity plugin. Build weekly shift templates, apply them to a week, and assign Unity telephone responders from a calendar view. Uses custom database tables behind an interface/factory/repository layer registered in Unity's container.
  * Version:           1.13.9
  * Requires at least: 6.0
- * Requires PHP:      8.1
+ * Requires PHP:      8.4
  * Requires Plugins:  unity, scrutiny, beacon
  * GitHub Plugin URI: https://github.com/bleedingdeacons/trusted
  * GitHub Branch:     main

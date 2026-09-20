@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
-use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\CoversClass;
+use function Brain\Monkey\Functions\expect;
 use Trusted\Template\TemplateFields;
 use Trusted\Tests\TestCase;
 
-/**
- * @covers \Trusted\Template\TemplateFields
- */
+#[CoversClass(\Trusted\Template\TemplateFields::class)]
 final class TemplateFieldsTest extends TestCase
 {
     protected function setUp(): void
@@ -53,7 +52,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameIgnoresOtherPostTypes(): void
     {
         $_POST = ['post_type' => 'post', 'post_title' => ''];
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);
@@ -62,7 +61,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameRejectsAnEmptyTitle(): void
     {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => '   '];
-        Functions\expect('acf_add_validation_error')->once();
+        expect('acf_add_validation_error')->once();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);
@@ -71,7 +70,7 @@ final class TemplateFieldsTest extends TestCase
     public function testValidateTemplateNameAcceptsANonEmptyTitle(): void
     {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => 'My Template'];
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
         self::assertTrue(true);

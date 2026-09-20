@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Structure;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,10 +26,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class DirectAccessGuardTest extends TestCase
 {
-    /**
-     * @test
-     * @dataProvider sourceFiles
-     */
+    #[DataProvider('sourceFiles')]
+    #[Test]
     public function every_source_file_refuses_direct_access(string $relative, string $absolute): void
     {
         $source = (string) file_get_contents($absolute);
@@ -44,9 +44,7 @@ final class DirectAccessGuardTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_sweep_actually_found_files(): void
     {
         // Guards the guard: a provider that silently returned nothing would

@@ -63,9 +63,11 @@ final class Plugin
     {
         $this->container = $container;
 
-        load_plugin_textdomain('trusted', false, dirname(plugin_basename(\TRUSTED_FILE)) . '/languages');
-
+        // On `init`, not here. WordPress 6.7 warns (_doing_it_wrong) when a
+        // textdomain is loaded before `init`, and boot() runs on
+        // `unity/loaded`, i.e. inside `plugins_loaded`.
         add_action('init', static function (): void {
+            load_plugin_textdomain('trusted', false, dirname(plugin_basename(\TRUSTED_FILE)) . '/languages');
             (new TemplatePostType())->register();
         });
 

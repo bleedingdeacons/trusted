@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Admin;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\DataProvider;
+use function Brain\Monkey\Filters\expectApplied;
 use BleedingDeacons\WpMocks\Exceptions\WpDieException;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Filters;
 use Mockery;
 use Mockery\MockInterface;
 use ReflectionMethod;
@@ -38,9 +41,8 @@ use Unity\Core\Interfaces\Container;
  * behind them was split into deleteWeekFromRequest()/clearAllFromRequest() and
  * is driven through reflection, the same approach Amber and Integrity document
  * for their own redirect-and-exit handlers.
- *
- * @covers \Trusted\Admin\DeveloperPage
  */
+#[CoversClass(\Trusted\Admin\DeveloperPage::class)]
 final class DeveloperPageTest extends TestCase
 {
     private Container&MockInterface $container;
@@ -95,8 +97,7 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── menu registration ─────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function it_registers_a_developer_submenu_under_the_trusted_menu(): void
     {
         $this->page->registerMenu();
@@ -115,22 +116,21 @@ final class DeveloperPageTest extends TestCase
     /**
      * `trusted_developer_tools` is the production off-switch: returning false
      * hides the page entirely rather than merely tightening its capability.
-     *
-     * @test
      */
+    #[Test]
     public function the_submenu_is_not_registered_when_developer_tools_are_switched_off(): void
     {
-        Filters\expectApplied('trusted_developer_tools')->andReturn(false);
+        expectApplied('trusted_developer_tools')->andReturn(false);
 
         $this->page->registerMenu();
 
         $this->assertSame([], WpState::$menus);
     }
 
-    /** @test */
+    #[Test]
     public function the_submenu_capability_is_filterable(): void
     {
-        Filters\expectApplied('trusted_capability')->andReturn('edit_trusted_rota');
+        expectApplied('trusted_capability')->andReturn('edit_trusted_rota');
 
         $this->page->registerMenu();
 
@@ -138,15 +138,13 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── guards ────────────────────────────────────────────────────────
-
     /**
      * Nothing trusts the menu to have hidden itself: the page and both actions
      * re-check, since admin-post.php is reachable by URL whether or not a menu
      * entry was ever drawn.
-     *
-     * @test
-     * @dataProvider guardedMethods
      */
+    #[DataProvider('guardedMethods')]
+    #[Test]
     public function every_entry_point_refuses_a_user_without_the_capability(string $method): void
     {
         WpState::$userCan = false;
@@ -155,13 +153,11 @@ final class DeveloperPageTest extends TestCase
         $this->page->{$method}();
     }
 
-    /**
-     * @test
-     * @dataProvider guardedMethods
-     */
+    #[DataProvider('guardedMethods')]
+    #[Test]
     public function every_entry_point_refuses_when_developer_tools_are_switched_off(string $method): void
     {
-        Filters\expectApplied('trusted_developer_tools')->andReturn(false);
+        expectApplied('trusted_developer_tools')->andReturn(false);
 
         $this->expectException(WpDieException::class);
         $this->page->{$method}();
@@ -177,7 +173,7 @@ final class DeveloperPageTest extends TestCase
         ];
     }
 
-    /** @test */
+    #[Test]
     public function the_refusal_says_what_was_refused(): void
     {
         WpState::$userCan = false;
@@ -187,7 +183,7 @@ final class DeveloperPageTest extends TestCase
         $this->page->render();
     }
 
-    /** @test */
+    #[Test]
     public function a_refused_action_deletes_nothing(): void
     {
         WpState::$userCan = false;
@@ -200,8 +196,7 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── the page ──────────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function the_page_offers_both_destructive_tools(): void
     {
         $html = $this->render();
@@ -215,9 +210,8 @@ final class DeveloperPageTest extends TestCase
      * Both forms post to admin-post.php with the action name their handler is
      * hooked on, and both carry a nonce — the pairing check_admin_referer()
      * depends on.
-     *
-     * @test
      */
+    #[Test]
     public function both_forms_post_to_a_nonce_protected_admin_post_action(): void
     {
         $html = $this->render();
@@ -230,7 +224,7 @@ final class DeveloperPageTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function both_forms_ask_for_confirmation_before_submitting(): void
     {
         $html = $this->render();
@@ -244,9 +238,8 @@ final class DeveloperPageTest extends TestCase
     /**
      * The week field is prefilled with the Monday of the current week, so the
      * common case is one click rather than a date-picker hunt.
-     *
-     * @test
      */
+    #[Test]
     public function the_week_field_defaults_to_the_monday_of_the_current_week(): void
     {
         $html = $this->render();
@@ -263,14 +256,13 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── notices ───────────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function no_notice_is_shown_on_a_plain_page_load(): void
     {
         $this->assertStringNotContainsString('notice-', $this->render());
     }
 
-    /** @test */
+    #[Test]
     public function an_unrecognised_status_shows_no_notice(): void
     {
         $_GET = ['trusted_status' => 'something_else'];
@@ -278,7 +270,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringNotContainsString('notice-', $this->render());
     }
 
-    /** @test */
+    #[Test]
     public function the_delete_notice_reports_the_count_and_the_week(): void
     {
         $_GET = ['trusted_status' => 'deleted', 'trusted_deleted' => '7', 'trusted_week' => '2026-08-03'];
@@ -292,9 +284,8 @@ final class DeveloperPageTest extends TestCase
     /**
      * The counts are pluralised through _n(), so one deleted slot must not
      * read "1 shifts".
-     *
-     * @test
      */
+    #[Test]
     public function the_delete_notice_is_singular_for_one_shift(): void
     {
         $_GET = ['trusted_status' => 'deleted', 'trusted_deleted' => '1', 'trusted_week' => '2026-08-03'];
@@ -302,7 +293,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringContainsString('Deleted 1 shift for the week', $this->render());
     }
 
-    /** @test */
+    #[Test]
     public function the_delete_notice_copes_with_missing_query_args(): void
     {
         $_GET = ['trusted_status' => 'deleted'];
@@ -310,7 +301,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringContainsString('Deleted 0 shifts for the week of .', $this->render());
     }
 
-    /** @test */
+    #[Test]
     public function the_cleared_notice_reports_the_total(): void
     {
         $_GET = ['trusted_status' => 'cleared', 'trusted_deleted' => '42'];
@@ -321,7 +312,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringContainsString('Cleared the entire rota: 42 shifts', $html);
     }
 
-    /** @test */
+    #[Test]
     public function the_cleared_notice_is_singular_for_one_shift(): void
     {
         $_GET = ['trusted_status' => 'cleared', 'trusted_deleted' => '1'];
@@ -329,7 +320,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringContainsString('Cleared the entire rota: 1 shift and', $this->render());
     }
 
-    /** @test */
+    #[Test]
     public function the_unconfirmed_notice_is_a_warning_not_a_success(): void
     {
         $_GET = ['trusted_status' => 'not_confirmed'];
@@ -341,7 +332,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertStringNotContainsString('notice-success', $html);
     }
 
-    /** @test */
+    #[Test]
     public function the_invalid_date_notice_is_an_error(): void
     {
         $_GET = ['trusted_status' => 'invalid'];
@@ -353,8 +344,7 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── delete-week (reflection: the live method exits) ────────────────
-
-    /** @test */
+    #[Test]
     public function deleting_a_week_normalises_the_posted_date_and_reports_the_count(): void
     {
         // A Thursday: the whole Monday–Sunday week containing it is cleared.
@@ -369,10 +359,9 @@ final class DeveloperPageTest extends TestCase
      * `week` comes straight off a <input type="date">, which a hand-built POST
      * can trivially bypass. Anything that is not a real calendar date is
      * rejected before the repository is reached.
-     *
-     * @test
-     * @dataProvider rejectedWeeks
      */
+    #[DataProvider('rejectedWeeks')]
+    #[Test]
     public function a_week_that_is_not_a_real_date_deletes_nothing(mixed $posted): void
     {
         $_POST = $posted === null ? [] : ['week' => $posted];
@@ -400,10 +389,9 @@ final class DeveloperPageTest extends TestCase
     /**
      * The Monday-of-week walk-back is the only arithmetic on the page, and the
      * ends of the week are where it goes wrong.
-     *
-     * @test
-     * @dataProvider mondays
      */
+    #[DataProvider('mondays')]
+    #[Test]
     public function any_day_normalises_to_the_monday_of_its_week(string $date, string $monday): void
     {
         $this->assertSame($monday, $this->callPrivate('mondayOf', [$date]));
@@ -423,8 +411,7 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── clear-everything (reflection: the live method exits) ───────────
-
-    /** @test */
+    #[Test]
     public function clearing_everything_requires_the_word_delete(): void
     {
         $_POST = ['confirm' => 'DELETE'];
@@ -437,10 +424,9 @@ final class DeveloperPageTest extends TestCase
     /**
      * The field is uppercased in CSS only, so the typed value arrives in
      * whatever case it was entered; sanitize_text_field() trims it.
-     *
-     * @test
-     * @dataProvider acceptedConfirmations
      */
+    #[DataProvider('acceptedConfirmations')]
+    #[Test]
     public function the_typed_confirmation_is_trimmed_and_case_insensitive(string $posted): void
     {
         $_POST = ['confirm' => $posted];
@@ -460,10 +446,8 @@ final class DeveloperPageTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     * @dataProvider rejectedConfirmations
-     */
+    #[DataProvider('rejectedConfirmations')]
+    #[Test]
     public function anything_other_than_delete_clears_nothing(mixed $posted): void
     {
         $_POST = $posted === null ? [] : ['confirm' => $posted];
@@ -485,14 +469,12 @@ final class DeveloperPageTest extends TestCase
     }
 
     // ── the redirect target ───────────────────────────────────────────
-
     /**
      * The status the handlers redirect with is the status maybeRenderNotice()
      * reads back, so the query-arg names are a contract between the two halves
      * of the round trip.
-     *
-     * @test
      */
+    #[Test]
     public function the_redirect_carries_the_args_the_notice_reads_back(): void
     {
         $url = (string) $this->callPrivate('redirectUrl', ['deleted', 9, '2026-08-03']);
@@ -506,7 +488,7 @@ final class DeveloperPageTest extends TestCase
         $this->assertSame('2026-08-03', rawurldecode((string) $query['trusted_week']));
     }
 
-    /** @test */
+    #[Test]
     public function the_redirect_target_stays_inside_wp_admin(): void
     {
         $url = (string) $this->callPrivate('redirectUrl', ['cleared', 0, '']);

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
-use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\Test;
+use function Brain\Monkey\Functions\expect;
 use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplateParser;
@@ -42,9 +43,7 @@ final class TemplateValidatorTest extends TestCase
         parent::tearDown();
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_does_nothing_when_acf_is_not_present(): void
     {
         // validate() returns early unless acf_add_validation_error exists, so a
@@ -57,12 +56,10 @@ final class TemplateValidatorTest extends TestCase
         self::assertTrue(true, 'validate() completed without reaching ACF.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_ignores_forms_that_are_not_ours(): void
     {
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         // No acf payload at all — some other form is saving.
         $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
@@ -70,12 +67,10 @@ final class TemplateValidatorTest extends TestCase
         self::assertTrue(true, 'A foreign form is left alone.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_accepts_a_template_naming_a_telephone_responder(): void
     {
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | John D'];
 
@@ -84,13 +79,11 @@ final class TemplateValidatorTest extends TestCase
         self::assertTrue(true, 'A valid responder raises no error.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_blocks_a_save_naming_a_member_who_is_not_a_responder(): void
     {
         $captured = [];
-        Functions\expect('acf_add_validation_error')
+        expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $message) use (&$captured): void {
                 $captured = ['field' => $field, 'message' => $message];
@@ -111,14 +104,12 @@ final class TemplateValidatorTest extends TestCase
         self::assertStringContainsString('not a telephone responder', $captured['message']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_distinguishes_an_unknown_name_from_a_non_responder(): void
     {
         // A typo and a real-but-ineligible member need different advice.
         $message = '';
-        Functions\expect('acf_add_validation_error')
+        expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$message): void {
                 $message = $text;
@@ -132,15 +123,13 @@ final class TemplateValidatorTest extends TestCase
         self::assertStringContainsString('Check the spelling', $message);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_reports_a_missing_shift_name_once_per_day(): void
     {
         // Three nameless lines, one message: the save is blocked without
         // burying the operator in repeats.
         $messages = [];
-        Functions\expect('acf_add_validation_error')
+        expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$messages): void {
                 $messages[] = $text;
@@ -154,12 +143,10 @@ final class TemplateValidatorTest extends TestCase
         self::assertStringContainsString('Every shift needs a name', $messages[0]);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_matches_names_case_insensitively(): void
     {
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [
             self::MON_KEY => "09:00-10:00 | A | John D\n10:00-11:00 | B | john d\n11:00-12:00 | C | JOHN D",
@@ -170,12 +157,10 @@ final class TemplateValidatorTest extends TestCase
         self::assertTrue(true, 'One responder satisfies the same name in three casings.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_matches_names_with_surrounding_whitespace(): void
     {
-        Functions\expect('acf_add_validation_error')->never();
+        expect('acf_add_validation_error')->never();
 
         $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning |    John D   '];
 
@@ -184,13 +169,11 @@ final class TemplateValidatorTest extends TestCase
         self::assertTrue(true, 'Names are trimmed before matching.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_validates_every_day_field_that_was_submitted(): void
     {
         $fields = [];
-        Functions\expect('acf_add_validation_error')
+        expect('acf_add_validation_error')
             ->twice()
             ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
                 $fields[] = $field;
@@ -207,15 +190,13 @@ final class TemplateValidatorTest extends TestCase
         self::assertNotSame($fields[0], $fields[1], 'Errors land on their own day fields.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_leaves_unsubmitted_days_alone(): void
     {
         // Only Monday was submitted; the other six day fields must not be
         // invented or reported on.
         $fields = [];
-        Functions\expect('acf_add_validation_error')
+        expect('acf_add_validation_error')
             ->once()
             ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
                 $fields[] = $field;
