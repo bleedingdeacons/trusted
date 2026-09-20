@@ -2,10 +2,10 @@
 Contributors: thebleedingdeacons
 Tags: rota, shifts, telephony, responders, scheduling
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.1.1
 Stable tag: 1.13.9
-Build date: 2026/09/09 02:33:23
-Requires PHP: 8.1
+Build date: 2026/09/20 18:57:02
+Requires PHP: 8.4
 License: MIT (Modified)
 
 A 7-day telephone shift rota manager built on the Unity plugin.

@@ -4,7 +4,7 @@
     "type": "wordpress-plugin",
     "license": "MIT (Modified)",
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.4",
         "psr/container": "^1.1 || ^2.0"
     },
     "autoload": {
@@ -37,10 +37,10 @@
         }
     ],
     "require-dev": {
-        "bleedingdeacons/wp-mocks": "^2.0",
+        "bleedingdeacons/wp-mocks": "^3.0",
         "mockery/mockery": "^1.6",
         "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^10.5",
+        "phpunit/phpunit": "^13.0",
         "squizlabs/php_codesniffer": "^4.0",
         "szepeviktor/phpstan-wordpress": "^2.0"
     }

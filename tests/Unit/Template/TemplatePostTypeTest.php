@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Trusted\Template\TemplatePostType;
 use Trusted\Tests\TestCase;
 
-/**
- * @covers \Trusted\Template\TemplatePostType
- */
+#[CoversClass(\Trusted\Template\TemplatePostType::class)]
 final class TemplatePostTypeTest extends TestCase
 {
     public function testRegisterRegistersTheTemplateCpt(): void

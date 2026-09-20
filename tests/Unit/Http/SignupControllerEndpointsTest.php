@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
-use Brain\Monkey\Filters;
+use PHPUnit\Framework\Attributes\CoversClass;
+use function Brain\Monkey\Filters\expectApplied;
 use Trusted\Factory\RotaFactory;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
@@ -21,9 +22,8 @@ use WP_REST_Server;
 /**
  * Covers the member-facing sign-up endpoints beyond the permission gate that
  * SignupControllerTest already pins.
- *
- * @covers \Trusted\Http\SignupController
  */
+#[CoversClass(\Trusted\Http\SignupController::class)]
 final class SignupControllerEndpointsTest extends TestCase
 {
     private InMemoryRotaRepository $rota;
@@ -47,13 +47,13 @@ final class SignupControllerEndpointsTest extends TestCase
 
     private function actingResponder(): void
     {
-        Filters\expectApplied('trusted_signup_member')->with(null)
+        expectApplied('trusted_signup_member')->with(null)
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
     }
 
     private function noMember(): void
     {
-        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn(null);
+        expectApplied('trusted_signup_member')->with(null)->andReturn(null);
     }
 
     private function seedSlot(string $date): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Factory;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
@@ -17,9 +18,7 @@ use Trusted\Factory\RotaFactory;
  */
 final class FactoryTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_factory_maps_a_full_row(): void
     {
         $rota = (new RotaFactory())->fromRow([
@@ -37,9 +36,7 @@ final class FactoryTest extends TestCase
         self::assertSame(4, $rota->templateId());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_factory_trims_seconds_off_mysql_time_columns(): void
     {
         // MySQL TIME returns H:i:s; the UI and the template grammar work in H:i.
@@ -52,9 +49,7 @@ final class FactoryTest extends TestCase
         self::assertSame('17:30', $rota->endTime());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_factory_defaults_every_missing_column(): void
     {
         $rota = (new RotaFactory())->fromRow([]);
@@ -66,9 +61,7 @@ final class FactoryTest extends TestCase
         self::assertNull($rota->templateId());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_factory_treats_a_null_template_id_as_absent(): void
     {
         // template_id is nullable in the schema, so the column is present and
@@ -79,9 +72,7 @@ final class FactoryTest extends TestCase
         self::assertNull($rota->templateId());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_factory_create_leaves_the_id_unset_and_normalises_times(): void
     {
         $rota = (new RotaFactory())->create('2026-07-20', '09:00:00', '17:00:00', 'Day shift', 4);
@@ -91,9 +82,7 @@ final class FactoryTest extends TestCase
         self::assertSame(4, $rota->templateId());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function assignment_factory_maps_a_full_row(): void
     {
         $assignment = (new AssignmentFactory())->fromRow([
@@ -111,9 +100,7 @@ final class FactoryTest extends TestCase
         self::assertSame('2026-07-19 10:30:00', $assignment->assignedAt());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function assignment_factory_defaults_every_missing_column(): void
     {
         $assignment = (new AssignmentFactory())->fromRow([]);
@@ -125,9 +112,7 @@ final class FactoryTest extends TestCase
         self::assertNull($assignment->assignedAt());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function assignment_factory_create_leaves_id_and_timestamp_to_the_database(): void
     {
         $assignment = (new AssignmentFactory())->create(12, '99', 'Cover');

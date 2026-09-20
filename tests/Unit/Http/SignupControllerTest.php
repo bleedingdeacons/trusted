@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
-use Brain\Monkey\Filters;
-use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\DataProvider;
+use function Brain\Monkey\Filters\expectApplied;
+use function Brain\Monkey\Functions\when;
 use Mockery;
 use Trusted\Http\SignupController;
 use Trusted\Service\ShiftSignup;
@@ -24,50 +26,42 @@ use Trusted\Tests\TestCase;
  */
 final class SignupControllerTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_denies_access_when_no_member_is_signed_in(): void
     {
         // The filter's default. No sibling plugin has resolved a member, so
         // nobody is signed in.
-        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn(null);
+        expectApplied('trusted_signup_member')->with(null)->andReturn(null);
 
         self::assertFalse($this->makeController()->can());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_denies_access_to_a_member_who_is_not_a_telephone_responder(): void
     {
         // The filter returned a real Unity member, but not a responder. The
         // controller re-checks rather than trusting the caller — this is the
         // whole reason the check is repeated here.
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->with(null)
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: false));
 
         self::assertFalse($this->makeController()->can());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_denies_access_when_the_filter_returns_something_that_is_not_a_member(): void
     {
         // A misbehaving filter must not open the door.
-        Filters\expectApplied('trusted_signup_member')->with(null)->andReturn('not-a-member');
+        expectApplied('trusted_signup_member')->with(null)->andReturn('not-a-member');
 
         self::assertFalse($this->makeController()->can());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_allows_a_verified_telephone_responder(): void
     {
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->with(null)
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
 
@@ -75,67 +69,56 @@ final class SignupControllerTest extends TestCase
     }
 
     // ── canWrite(): the anti-CSRF gate on the state-changing routes ────
-
-    /**
-     * @test
-     */
+    #[Test]
     public function a_write_is_refused_when_nothing_vouches_for_the_request(): void
     {
         // A signed-in responder, but no sibling answered the verify filter.
         // Its default is false, so the write is refused: this is the case a
         // cross-site POST arrives in, carrying the session cookie the browser
         // attached by itself but no token it could not have read.
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
-        Filters\expectApplied('trusted_signup_verify_request')->andReturn(false);
+        expectApplied('trusted_signup_verify_request')->andReturn(false);
 
         self::assertFalse($this->makeController()->canWrite($this->request()));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_write_is_allowed_when_a_sibling_vouches_for_the_request(): void
     {
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
-        Filters\expectApplied('trusted_signup_verify_request')->andReturn(true);
+        expectApplied('trusted_signup_verify_request')->andReturn(true);
 
         self::assertTrue($this->makeController()->canWrite($this->request()));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_verified_request_from_someone_not_signed_in_is_still_refused(): void
     {
         // The token gate is in addition to the member gate, never instead of
         // it. A sibling wrongly returning true must not admit a stranger.
-        Filters\expectApplied('trusted_signup_member')->andReturn(null);
+        expectApplied('trusted_signup_member')->andReturn(null);
 
         self::assertFalse($this->makeController()->canWrite($this->request()));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_write_is_refused_for_a_member_who_is_not_a_responder_however_well_verified(): void
     {
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: false));
 
         self::assertFalse($this->makeController()->canWrite($this->request()));
     }
 
-    /**
-     * @test
-     * @dataProvider truthyProvider
-     */
+    #[DataProvider('truthyProvider')]
+    #[Test]
     public function only_a_real_yes_opens_the_write_gate(mixed $answer, bool $expected, string $why): void
     {
-        Filters\expectApplied('trusted_signup_member')
+        expectApplied('trusted_signup_member')
             ->andReturn(new ResponderStub(id: 7, telephoneResponder: true));
-        Filters\expectApplied('trusted_signup_verify_request')->andReturn($answer);
+        expectApplied('trusted_signup_verify_request')->andReturn($answer);
 
         self::assertSame($expected, $this->makeController()->canWrite($this->request()), $why);
     }
@@ -154,23 +137,21 @@ final class SignupControllerTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_write_routes_are_gated_by_canWrite_and_the_read_by_can(): void
     {
         // Guards the wiring rather than the gate: a route registered against
         // can() instead of canWrite() would pass every test above and still
         // be forgeable.
         $routes = [];
-        Functions\when('register_rest_route')->alias(
+        when('register_rest_route')->alias(
             static function ($namespace, $route, $args) use (&$routes): bool {
                 $routes[$route] = $args['permission_callback'][1];
 
                 return true;
             }
         );
-        Functions\when('add_filter')->justReturn(true);
+        when('add_filter')->justReturn(true);
 
         $this->makeController()->registerRoutes();
 
@@ -179,10 +160,8 @@ final class SignupControllerTest extends TestCase
         self::assertSame('canWrite', $routes['/signup/(?P<rota>\d+)'], 'DELETE takes a responder off a shift.');
     }
 
-    /**
-     * @test
-     * @dataProvider dateProvider
-     */
+    #[DataProvider('dateProvider')]
+    #[Test]
     public function it_validates_the_date_parameter(mixed $value, bool $expected, string $why): void
     {
         self::assertSame($expected, $this->makeController()->isDate($value), $why);

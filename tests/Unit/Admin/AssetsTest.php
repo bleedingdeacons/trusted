@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Admin;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
@@ -23,9 +26,8 @@ use Trusted\Tests\TestCase;
  * a nonce, the week to open on and the full i18n table — a missing key there
  * shows up in the browser as `undefined` in a button label, which no PHP test
  * would otherwise catch.
- *
- * @covers \Trusted\Admin\Assets
  */
+#[CoversClass(\Trusted\Admin\Assets::class)]
 final class AssetsTest extends TestCase
 {
     private const HOOK = 'toplevel_page_' . CalendarPage::SLUG;
@@ -45,7 +47,7 @@ final class AssetsTest extends TestCase
 
     private function freezeNow(string $when): void
     {
-        Functions\when('current_datetime')->justReturn(new DateTimeImmutable($when));
+        when('current_datetime')->justReturn(new DateTimeImmutable($when));
     }
 
     /** @return array<string, mixed> */
@@ -61,11 +63,8 @@ final class AssetsTest extends TestCase
     }
 
     // ── the screen gate ───────────────────────────────────────────────
-
-    /**
-     * @test
-     * @dataProvider foreignHooks
-     */
+    #[DataProvider('foreignHooks')]
+    #[Test]
     public function nothing_is_enqueued_on_another_admin_screen(string $hook): void
     {
         $this->assets->enqueue($hook);
@@ -88,7 +87,7 @@ final class AssetsTest extends TestCase
         ];
     }
 
-    /** @test */
+    #[Test]
     public function the_calendar_stylesheet_and_script_are_enqueued_on_the_calendar_screen(): void
     {
         $this->assets->enqueue(self::HOOK);
@@ -103,8 +102,7 @@ final class AssetsTest extends TestCase
     }
 
     // ── the localised payload ─────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function the_script_is_pointed_at_the_plugins_own_rest_namespace(): void
     {
         $this->assets->enqueue(self::HOOK);
@@ -118,9 +116,8 @@ final class AssetsTest extends TestCase
     /**
      * The calendar renders Monday-first or Sunday-first from the site's own
      * Settings → General value, defaulting to Monday when it is unset.
-     *
-     * @test
      */
+    #[Test]
     public function the_first_day_of_the_week_comes_from_the_site_setting(): void
     {
         WpState::$options['start_of_week'] = '0';
@@ -130,7 +127,7 @@ final class AssetsTest extends TestCase
         $this->assertSame(0, $this->localizedData()['startDow'], 'startDow should be an int');
     }
 
-    /** @test */
+    #[Test]
     public function the_first_day_of_the_week_defaults_to_monday(): void
     {
         $this->assets->enqueue(self::HOOK);
@@ -143,10 +140,9 @@ final class AssetsTest extends TestCase
      * rather than PHP's default. On a site running ahead of UTC, a plain
      * `new DateTimeImmutable('today')` can still read as yesterday and open
      * the calendar on the previous week.
-     *
-     * @test
-     * @dataProvider weekAnchors
      */
+    #[DataProvider('weekAnchors')]
+    #[Test]
     public function the_calendar_opens_on_the_monday_of_the_current_week(
         string $now,
         string $expectedMonday
@@ -175,9 +171,8 @@ final class AssetsTest extends TestCase
      * Every string calendar.js reads out of TrustedData.i18n. Kept as an
      * explicit list because the failure mode of a dropped key is a button
      * labelled "undefined" in wp-admin, not an error anywhere in PHP.
-     *
-     * @test
      */
+    #[Test]
     public function the_full_i18n_table_is_handed_to_the_script(): void
     {
         $this->assets->enqueue(self::HOOK);
@@ -205,9 +200,8 @@ final class AssetsTest extends TestCase
     /**
      * Three of the strings are sprintf templates filled in by the script, so
      * their placeholders have to survive translation.
-     *
-     * @test
      */
+    #[Test]
     public function the_countable_strings_keep_their_placeholders(): void
     {
         $this->assets->enqueue(self::HOOK);

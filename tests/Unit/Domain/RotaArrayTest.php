@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Domain;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Trusted\Domain\Assignment;
 use Trusted\Domain\Rota;
 use Trusted\Tests\TestCase;
 
 /**
  * Covers Rota's assignment accessors and array/JSON serialisation.
- *
- * @covers \Trusted\Domain\Rota
  */
+#[CoversClass(\Trusted\Domain\Rota::class)]
 final class RotaArrayTest extends TestCase
 {
     private function rota(): Rota

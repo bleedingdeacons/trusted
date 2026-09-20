@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Domain;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Trusted\Domain\Assignment;
 use Trusted\Domain\Member;
@@ -21,9 +22,7 @@ use Trusted\Tests\Fixtures\ResponderStub;
  */
 final class DomainTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function shift_exposes_its_parts_and_serialises_to_the_ui_shape(): void
     {
         $shift = new Shift('09:00', '17:00', 'Day shift', 'John D');
@@ -37,9 +36,7 @@ final class DomainTest extends TestCase
         self::assertSame($shift->toArray(), $shift->jsonSerialize());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function shift_defaults_its_optional_parts_to_empty_strings(): void
     {
         $shift = new Shift('09:00', '17:00');
@@ -48,9 +45,7 @@ final class DomainTest extends TestCase
         self::assertSame('', $shift->member(), 'Empty means no member to pre-assign, not null.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_with_id_returns_a_new_instance_and_leaves_the_original_alone(): void
     {
         $rota = new Rota(null, '2026-07-20', '09:00', '17:00', 'Day shift');
@@ -62,9 +57,7 @@ final class DomainTest extends TestCase
         self::assertSame('Day shift', $saved->label(), 'Everything else carries over.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function rota_with_assignments_returns_a_new_instance(): void
     {
         $rota = new Rota(1, '2026-07-20', '09:00', '17:00');
@@ -74,9 +67,7 @@ final class DomainTest extends TestCase
         self::assertCount(1, $filled->assignments());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function assignment_with_member_attaches_without_mutating(): void
     {
         $assignment = new Assignment(1, 12, '99');
@@ -87,9 +78,7 @@ final class DomainTest extends TestCase
         self::assertSame('Jane S', $withMember->member()?->name());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function member_serialises_every_field(): void
     {
         $member = new Member('99', 'Jane S', 'jane@example.test', '07700 900999');
@@ -99,9 +88,7 @@ final class DomainTest extends TestCase
         self::assertSame('jane@example.test', $member->toArray()['email']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function presenter_maps_unity_fields_onto_trusted_ones(): void
     {
         // The single mapping point between Unity's domain and Trusted's REST

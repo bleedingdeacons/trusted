@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Repository;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use Mockery\MockInterface;
 use Mockery;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Repository\AssignmentRepository;
@@ -14,12 +16,11 @@ use Trusted\Tests\TestCase;
 /**
  * Covers the AssignmentRepository read/write/delete methods that the atomic
  * assignIfOpen suite (AssignmentRepositoryTest) does not.
- *
- * @covers \Trusted\Repository\AssignmentRepository
  */
+#[CoversClass(\Trusted\Repository\AssignmentRepository::class)]
 final class AssignmentRepositoryReadWriteTest extends TestCase
 {
-    /** @return \Mockery\MockInterface */
+    /** @return MockInterface */
     private function wpdb()
     {
         $db = Mockery::mock('wpdb');

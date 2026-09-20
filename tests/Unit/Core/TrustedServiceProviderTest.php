@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Core;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Mockery;
 use Trusted\Core\TrustedServiceProvider;
 use Trusted\Http\RestController;
@@ -17,9 +18,7 @@ use Unity\Members\Interfaces\MemberRepository;
 use Unity\Testing\Doubles\FakeContainer;
 use Unity\Testing\Doubles\InMemoryMemberRepository;
 
-/**
- * @covers \Trusted\Core\TrustedServiceProvider
- */
+#[CoversClass(\Trusted\Core\TrustedServiceProvider::class)]
 final class TrustedServiceProviderTest extends TestCase
 {
     public function testRegisterWiresEveryServiceResolvable(): void
