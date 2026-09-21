@@ -12,6 +12,7 @@ if (! defined('ABSPATH')) {
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaFactoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
+use Trusted\Service\GapFinder;
 use Trusted\Service\ShiftSignup;
 use Trusted\Support\MemberPresenter;
 use Trusted\Template\TemplateApplicator;
@@ -37,6 +38,7 @@ final class RestController
         private TemplateApplicator $applicator,
         private RotaFactoryInterface $rotaFactory,
         private ShiftSignup $signup,
+        private GapFinder $gaps = new GapFinder(),
     ) {
     }
 
@@ -164,26 +166,37 @@ final class RestController
         $slots     = $this->rota->findForWeek($weekStart);
 
         // Group slots into the seven days, always returning all 7.
-        $days = [];
+        $byDate = [];
         for ($i = 0; $i < 7; $i++) {
-            $date        = $this->addDays($weekStart, $i);
-            $days[$date] = [
-                'date'    => $date,
-                'weekday' => (int) (new \DateTimeImmutable($date))->format('N'),
-                'slots'   => [],
-            ];
+            $byDate[$this->addDays($weekStart, $i)] = [];
         }
 
         foreach ($slots as $slot) {
-            $date = $slot->slotDate();
-            if (isset($days[$date])) {
-                $days[$date]['slots'][] = $slot->toArray();
+            if (isset($byDate[$slot->slotDate()])) {
+                $byDate[$slot->slotDate()][] = $slot;
             }
+        }
+
+        // Each day's gaps depend on the day before, whose overnight shifts
+        // cover its early hours. For Monday that is the previous week's
+        // Sunday, which is fetched for this and nothing else — its slots are
+        // not part of the week shown.
+        $previousDay = $this->rota->findForDate($this->addDays($weekStart, -1));
+
+        $days = [];
+        foreach ($byDate as $date => $daySlots) {
+            $days[] = [
+                'date'    => $date,
+                'weekday' => (int) (new \DateTimeImmutable($date))->format('N'),
+                'slots'   => array_map(static fn ($slot): array => $slot->toArray(), $daySlots),
+                'gaps'    => $this->gaps->forDay($daySlots, $previousDay),
+            ];
+            $previousDay = $daySlots;
         }
 
         return new WP_REST_Response([
             'week_start' => $weekStart,
-            'days'       => array_values($days),
+            'days'       => $days,
         ]);
     }
 

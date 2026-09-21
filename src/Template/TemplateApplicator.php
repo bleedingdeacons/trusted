@@ -14,6 +14,7 @@ use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaFactoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
 use Trusted\Domain\Rota;
+use Trusted\Domain\ShiftTime;
 use Trusted\Support\ResponderDirectory;
 
 /**
@@ -111,7 +112,9 @@ final class TemplateApplicator
             $date = $monday->modify('+' . ($weekday - 1) . ' days')->format('Y-m-d');
 
             foreach ($shifts as $shift) {
-                $key = $this->slotKey($date, $shift->startTime(), $shift->endTime());
+                // The template says 24:00 where the stored slot says 23:59;
+                // key on the stored form so the two are recognised as one.
+                $key = $this->slotKey($date, $shift->startTime(), ShiftTime::toStored($shift->endTime()));
 
                 // Skip a shift that already exists on this date/time — keep the
                 // current slot (and its name) exactly as it is.
@@ -220,7 +223,7 @@ final class TemplateApplicator
      */
     private function serialiseSlot(Rota $slot, bool $includeMembers): string
     {
-        $line = $slot->startTime() . '-' . $slot->endTime()
+        $line = $slot->startTime() . '-' . ShiftTime::toShown($slot->endTime())
             . ' | ' . $this->sanitiseSegment($slot->label());
 
         if ($includeMembers) {

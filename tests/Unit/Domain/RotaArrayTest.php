@@ -46,6 +46,13 @@ it('includes its assignments in toArray', function () {
         ->and($array['assignments'])->toHaveCount(1);
 });
 
+it('shows a stored 23:59 end as 24:00', function () {
+    $rota = new Rota(id: 1, slotDate: '2026-07-20', startTime: '18:00', endTime: '23:59', label: 'Late');
+
+    expect($rota->endTime())->toBe('23:59', 'What is stored is unchanged.')
+        ->and($rota->toArray()['end'])->toBe('24:00', 'What the calendar shows is the end of the day.');
+});
+
 it('serialises to JSON exactly as toArray', function () {
     $rota = morningRota();
 

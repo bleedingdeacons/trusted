@@ -11,6 +11,7 @@ if (! defined('ABSPATH')) {
 
 use Trusted\Contracts\RotaFactoryInterface;
 use Trusted\Domain\Rota;
+use Trusted\Domain\ShiftTime;
 
 final class RotaFactory implements RotaFactoryInterface
 {
@@ -20,7 +21,7 @@ final class RotaFactory implements RotaFactoryInterface
             id: isset($row['id']) ? (int) $row['id'] : null,
             slotDate: (string) ($row['slot_date'] ?? ''),
             startTime: $this->normaliseTime((string) ($row['start_time'] ?? '')),
-            endTime: $this->normaliseTime((string) ($row['end_time'] ?? '')),
+            endTime: ShiftTime::toStored($this->normaliseTime((string) ($row['end_time'] ?? ''))),
             label: (string) ($row['label'] ?? ''),
             templateId: isset($row['template_id'])
                 ? (int) $row['template_id']
@@ -39,7 +40,7 @@ final class RotaFactory implements RotaFactoryInterface
             id: null,
             slotDate: $slotDate,
             startTime: $this->normaliseTime($startTime),
-            endTime: $this->normaliseTime($endTime),
+            endTime: ShiftTime::toStored($this->normaliseTime($endTime)),
             label: $label,
             templateId: $templateId,
         );

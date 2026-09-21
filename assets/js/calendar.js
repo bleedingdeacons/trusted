@@ -453,47 +453,11 @@
         return /^(?:([01]?\d|2[0-3]):[0-5]\d|24:00)$/.test(v);
     }
 
-    function minutesToHHMM(min) {
-        if (min >= 1440) { return '24:00'; } // end-of-day boundary
-        var h = Math.floor(min / 60), m = min % 60;
-        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-    }
-
-    // Uncovered stretches across the whole day, treated as 00:00 → 24:00. Each
-    // shift covers [start, end); a shift whose end is at or before its start
-    // crosses midnight and so covers through to the end of this day. Overlaps are
-    // absorbed (never flagged) by advancing a cursor. Returns gaps as
-    // { start, end, before } where `before` is the insert position — the index of
-    // the following shift, or shifts.length for an end-of-day gap. A day with no
-    // shifts yields a single 00:00–24:00 gap.
-    function dayGaps(shifts) {
-        var gaps = [];
-        var cursor = 0;
-
-        shifts.forEach(function (shift, i) {
-            var s = toMinutes(shift.start);
-            var e = toMinutes(shift.end);
-            if (e <= s) { e = 1440; } // crosses midnight → covers to end of day
-
-            if (s > cursor) {
-                gaps.push({ start: minutesToHHMM(cursor), end: minutesToHHMM(s), before: i });
-            }
-            if (e > cursor) { cursor = e; }
-        });
-
-        if (cursor < 1440) {
-            gaps.push({ start: minutesToHHMM(cursor), end: minutesToHHMM(1440), before: shifts.length });
-        }
-
-        return gaps;
-    }
-
-    // Map dayGaps() output by insert position for easy lookup while rendering.
-    function gapsByPosition(shifts) {
-        var byPos = {};
-        dayGaps(shifts).forEach(function (g) { byPos[g.before] = g; });
-        return byPos;
-    }
+    // Gaps — uncovered time in a day — are worked out on the server
+    // (Trusted\Service\GapFinder), because they depend on the previous
+    // day: a shift that runs overnight covers the next morning until it ends.
+    // Each day in the week payload carries its own `gaps`; this file only
+    // draws them, so there is one set of rules rather than two to keep in step.
 
     function buildGapMarker(gap) {
         return el('div', {
@@ -515,33 +479,52 @@
         });
     }
 
-    // Rebuild the gap markers in a day's .trusted-slots container from the shift
-    // cards currently in it (DOM order). Used after a shift is removed so gaps
-    // merge/disappear correctly without a full re-render.
-    function refreshGaps(slotsNode) {
-        var existing = slotsNode.querySelectorAll('.trusted-gap');
-        Array.prototype.forEach.call(existing, function (g) { g.parentNode.removeChild(g); });
+    // Draw a day's gaps among its shift cards. Each gap ends where a shift
+    // starts (or at 24:00), so it goes immediately before the first card that
+    // starts at or after its end; a gap running to 24:00 goes after the last
+    // card. Existing markers are replaced.
+    function placeGaps(slotsNode, gaps) {
+        Array.prototype.forEach.call(slotsNode.querySelectorAll('.trusted-gap'), function (g) {
+            g.parentNode.removeChild(g);
+        });
 
-        // Real shift cards carry data-start/data-end; the in-progress add form
-        // and other children do not, so they're skipped.
+        // Real shift cards carry data-start; the in-progress add form and
+        // other children do not, so they're skipped.
         var cards = Array.prototype.filter.call(slotsNode.children, function (c) {
             return c.classList.contains('trusted-slot') && c.hasAttribute('data-start');
         });
-        var shifts = cards.map(function (c) {
-            return { start: c.getAttribute('data-start'), end: c.getAttribute('data-end') };
-        });
 
-        var gapAt = gapsByPosition(shifts);
-        cards.forEach(function (card, i) {
-            if (gapAt[i]) { slotsNode.insertBefore(buildGapMarker(gapAt[i]), card); }
-        });
+        (gaps || []).forEach(function (gap) {
+            var marker = buildGapMarker(gap);
+            var gapEnd = gap.end === '24:00' ? 1440 : toMinutes(gap.end);
+            var ref = null;
 
-        var trailing = gapAt[cards.length];
-        if (trailing) {
-            var marker = buildGapMarker(trailing);
-            if (cards.length) { slotsNode.insertBefore(marker, cards[cards.length - 1].nextSibling); }
+            cards.some(function (card) {
+                if (toMinutes(card.getAttribute('data-start')) >= gapEnd) { ref = card; return true; }
+                return false;
+            });
+
+            if (ref) { slotsNode.insertBefore(marker, ref); }
+            else if (cards.length) { slotsNode.insertBefore(marker, cards[cards.length - 1].nextSibling); }
             else { slotsNode.appendChild(marker); }
-        }
+        });
+    }
+
+    // Re-fetch the week's gaps and redraw them in every day, leaving the shift
+    // cards as they are. Used after a shift is added or removed: that can open
+    // or close a gap on its own day and, for an overnight shift, on the next.
+    function refreshGaps() {
+        var weekStart = state.weekStart;
+        api('/week/' + weekStart).then(function (week) {
+            if (state.weekStart !== weekStart) { return; } // moved on meanwhile
+            (week.days || []).forEach(function (day) {
+                var node = root.querySelector('.trusted-slots[data-date="' + day.date + '"]');
+                if (node) { placeGaps(node, day.gaps); }
+            });
+        }).catch(function () {
+            // Gaps are a guide, not data: a failed refresh leaves the old
+            // markers until the next render rather than interrupting the user.
+        });
     }
 
     // Insert a shift card into a day's .trusted-slots in start-time order. Times
@@ -573,14 +556,12 @@
         var slots = el('div', { class: 'trusted-slots', 'data-date': day.date });
         var daySlots = day.slots || [];
 
-        // Uncovered time across the full 00:00–24:00 day: before the first shift,
-        // between shifts, and after the last shift.
-        var gapAt = gapsByPosition(daySlots);
-        daySlots.forEach(function (slot, i) {
-            if (gapAt[i]) { slots.appendChild(buildGapMarker(gapAt[i])); }
+        daySlots.forEach(function (slot) {
             slots.appendChild(state.bulk ? buildSelectableSlotCard(slot) : buildSlotCard(slot));
         });
-        if (gapAt[daySlots.length]) { slots.appendChild(buildGapMarker(gapAt[daySlots.length])); }
+        // Uncovered time across the 00:00–24:00 day, as the server worked it
+        // out — including where the previous night's shift runs into this one.
+        placeGaps(slots, day.gaps);
         col.appendChild(slots);
 
         // Add-shift sits at the base of the column, below the shifts. Hidden
@@ -611,7 +592,7 @@
                         var slotsNode = card.parentNode;
                         if (slotsNode) {
                             slotsNode.removeChild(card);
-                            refreshGaps(slotsNode); // the removed shift may open or close a gap
+                            refreshGaps(); // the removed shift may open or close a gap, here or tomorrow
                         }
                     }).catch(function (e) { window.alert(e.message); });
                 });
@@ -674,7 +655,8 @@
     function buildSelectableSlotCard(slot) {
         var filled = !!(slot.assignments && slot.assignments.length);
         var card = el('div', {
-            class: 'trusted-slot ' + (filled ? 'trusted-slot-filled' : 'trusted-slot-selectable')
+            class: 'trusted-slot ' + (filled ? 'trusted-slot-filled' : 'trusted-slot-selectable'),
+            'data-start': slot.start, 'data-end': slot.end
         });
 
         var timeRow = el('div', { class: 'trusted-slot-time' }, [
@@ -927,7 +909,7 @@
         function finish(slot) {
             if (form.parentNode) { form.parentNode.removeChild(form); }
             insertCardSorted(slotsNode, buildSlotCard(slot)); // place it in time order
-            refreshGaps(slotsNode); // the new shift may fill or split a gap
+            refreshGaps(); // the new shift may fill or split a gap, here or tomorrow
             if (addBtn) { addBtn.disabled = false; } // form is gone; allow adding another
         }
 

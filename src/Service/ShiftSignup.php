@@ -12,6 +12,7 @@ if (! defined('ABSPATH')) {
 use InvalidArgumentException;
 use Trusted\Contracts\AssignmentRepositoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
+use Trusted\Domain\ShiftTime;
 use Unity\Members\Interfaces\Member as UnityMember;
 
 /**
@@ -67,7 +68,7 @@ final class ShiftSignup
                 'id'       => (int) $slot->id(),
                 'date'     => $slot->slotDate(),
                 'start'    => $slot->startTime(),
-                'end'      => $slot->endTime(),
+                'end'      => ShiftTime::toShown($slot->endTime()),
                 'label'    => $slot->label(),
                 'is_open'  => $isOpen,
                 'assignee' => $assignee,

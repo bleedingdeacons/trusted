@@ -141,6 +141,46 @@ describe('getWeek', function () {
     });
 });
 
+describe('getWeek gaps', function () {
+    it("returns each day's gaps alongside its slots", function () {
+        seedSlot($this->rota, '2026-07-21', '09:00', '17:00'); // Tuesday
+
+        $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
+
+        expect($days[1]['gaps'])->toBe([
+            ['start' => '00:00', 'end' => '09:00'],
+            ['start' => '17:00', 'end' => '24:00'],
+        ])->and($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '24:00']]);
+    });
+
+    it("starts a day's first gap when the previous night's shift ends", function () {
+        seedSlot($this->rota, '2026-07-20', '22:00', '06:00'); // Monday night
+
+        $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
+
+        expect($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '22:00']])
+            ->and($days[1]['gaps'])->toBe([['start' => '06:00', 'end' => '24:00']]);
+    });
+
+    it("carries the previous week's Sunday night into Monday", function () {
+        // Sunday is outside the week being shown, but its overnight shift
+        // still covers the start of Monday.
+        seedSlot($this->rota, '2026-07-19', '22:00', '07:00');
+
+        $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
+
+        expect($days[0]['gaps'])->toBe([['start' => '07:00', 'end' => '24:00']]);
+    });
+
+    it('does not list the previous Sunday among the week\'s slots', function () {
+        seedSlot($this->rota, '2026-07-19', '22:00', '07:00');
+
+        $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
+
+        expect($days[0]['slots'])->toBe([]);
+    });
+});
+
 describe('clearWeek', function () {
     it('deletes an empty week', function () {
         seedSlot($this->rota, '2026-07-20');
@@ -183,6 +223,15 @@ describe('slots', function () {
         ]));
 
         expect($response->get_status())->toBe(201);
+    });
+
+    it('stores an entered 24:00 as 23:59 and shows it back as 24:00', function () {
+        $response = $this->controller->createSlot(restRequest([
+            'date' => '2026-07-20', 'start' => '18:00', 'end' => '24:00', 'label' => 'Late',
+        ]));
+
+        expect($response->get_data()['end'])->toBe('24:00')
+            ->and($this->rota->findForDate('2026-07-20')[0]->endTime())->toBe('23:59');
     });
 
     it('returns 404 when updating a missing slot', function () {
