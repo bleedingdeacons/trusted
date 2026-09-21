@@ -64,6 +64,7 @@ final class Assets
                 /* translators: shown between two shifts with uncovered time, e.g. "Gap 13:00–14:00". */
                 'gap'           => __('Gap', 'trusted'),
                 'gapAddHint'    => __('Double-click to add a shift for this gap', 'trusted'),
+                'gapLocked'     => __('Before the rota starts: no shift on the previous day runs past 24:00.', 'trusted'),
                 'saveAsTemplate'       => __('Save week as template', 'trusted'),
                 'templateName'         => __('Template name', 'trusted'),
                 'includeMembers'       => __('Include assigned members', 'trusted'),

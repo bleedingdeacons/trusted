@@ -251,6 +251,15 @@
     border-color: #b88c00;
 }
 
+/* Before the rota starts: not a gap to fill, so grey and inert. */
+.trusted-gap-locked,
+.trusted-gap-locked:hover {
+    color: #646970;
+    background: #f0f0f1;
+    border-color: #c3c4c7;
+    cursor: default;
+}
+
 .trusted-slot-time {
     display: flex;
     justify-content: space-between;
