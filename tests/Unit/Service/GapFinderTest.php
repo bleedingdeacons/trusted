@@ -22,6 +22,11 @@ use Trusted\Service\GapFinder;
  *
  * An end of 23:59 is the end of the day (it is how 24:00 is stored), so it
  * never leaves a one-minute gap and never runs overnight.
+ *
+ * When nothing on the previous day runs past 24:00, the time before a day's
+ * first shift is not a gap anyone can fill: it is before the rota starts, as
+ * on the first Monday the telephone service runs, with no Sunday shift before
+ * it. That opening gap is locked — shown grey and not offered for a new shift.
  */
 
 covers(GapFinder::class);
@@ -69,9 +74,12 @@ describe('within a single day', function () {
             ->toBe(['00:00-09:00', '12:00-13:00', '17:00-24:00']);
     });
 
-    it('returns each gap as a start and end pair', function () {
-        expect((new GapFinder())->forDay([shift('09:00', '24:00')]))
-            ->toBe([['start' => '00:00', 'end' => '09:00']]);
+    it('returns each gap as a start, an end and whether it is locked', function () {
+        expect((new GapFinder())->forDay([shift('09:00', '17:00')], [shift('22:00', '06:00', '2026-07-20')]))
+            ->toBe([
+                ['start' => '06:00', 'end' => '09:00', 'locked' => false],
+                ['start' => '17:00', 'end' => '24:00', 'locked' => false],
+            ]);
     });
 });
 
@@ -161,5 +169,61 @@ describe('a shift that carries over midnight', function () {
 
         expect(gapsOf($tuesday, $monday))->toBe(['06:00-09:00', '17:00-24:00'])
             ->and(gapsOf([], $tuesday))->toBe(['00:00-24:00']);
+    });
+});
+
+/**
+ * @param list<Rota> $slots
+ * @param list<Rota> $previousDay
+ * @return list<string> the locked gaps only, as "start-end"
+ */
+function lockedGapsOf(array $slots, array $previousDay = []): array
+{
+    return array_values(array_map(
+        static fn (array $gap): string => $gap['start'] . '-' . $gap['end'],
+        array_filter((new GapFinder())->forDay($slots, $previousDay), static fn (array $gap): bool => $gap['locked'])
+    ));
+}
+
+describe('the opening gap before the rota starts', function () {
+    it('is locked when the previous day has no shifts at all', function () {
+        // The first Monday of the rota: there is no Sunday shift before it.
+        expect(lockedGapsOf([shift('10:00', '14:00')]))->toBe(['00:00-10:00']);
+    });
+
+    it('is locked when no shift on the previous day runs past 24:00', function () {
+        $previousDay = [shift('18:00', '22:00', '2026-07-20'), shift('22:00', '24:00', '2026-07-20')];
+
+        expect(lockedGapsOf([shift('10:00', '14:00')], $previousDay))->toBe(['00:00-10:00']);
+    });
+
+    it('is locked when the previous night ends exactly at 00:00', function () {
+        // Ending at 00:00 carries nothing past 24:00.
+        $previousDay = [shift('22:00', '00:00', '2026-07-20')];
+
+        expect(lockedGapsOf([shift('10:00', '14:00')], $previousDay))->toBe(['00:00-10:00']);
+    });
+
+    it('is not locked when the previous night runs past 24:00', function () {
+        // The gap then starts when that shift ends, and is a real gap to fill.
+        $previousDay = [shift('22:00', '06:00', '2026-07-20')];
+
+        expect(gapsOf([shift('10:00', '14:00')], $previousDay))->toContain('06:00-10:00')
+            ->and(lockedGapsOf([shift('10:00', '14:00')], $previousDay))->toBe([]);
+    });
+
+    it('locks only the opening gap, never a later one', function () {
+        expect(gapsOf([shift('10:00', '14:00'), shift('16:00', '18:00')]))
+            ->toBe(['00:00-10:00', '14:00-16:00', '18:00-24:00'])
+            ->and(lockedGapsOf([shift('10:00', '14:00'), shift('16:00', '18:00')]))->toBe(['00:00-10:00']);
+    });
+
+    it('does not lock an empty day, which has no first shift to lead up to', function () {
+        // Otherwise an empty week could never be filled in from its gaps.
+        expect(lockedGapsOf([]))->toBe([]);
+    });
+
+    it('has nothing to lock when the first shift starts at 00:00', function () {
+        expect(lockedGapsOf([shift('00:00', '08:00'), shift('10:00', '14:00')]))->toBe([]);
     });
 });

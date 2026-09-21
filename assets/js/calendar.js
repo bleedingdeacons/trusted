@@ -460,6 +460,17 @@
     // draws them, so there is one set of rules rather than two to keep in step.
 
     function buildGapMarker(gap) {
+        // A locked gap is the time before the rota starts — nothing on the
+        // previous day runs past 24:00 — so it is shown grey and is not
+        // offered for a new shift.
+        if (gap.locked) {
+            return el('div', {
+                class: 'trusted-gap trusted-gap-locked',
+                title: i18n.gapLocked || 'Before the rota starts: no shift on the previous day runs past 24:00.',
+                text: gap.start + '–' + gap.end
+            });
+        }
+
         return el('div', {
             class: 'trusted-gap',
             title: i18n.gapAddHint || 'Double-click to add a shift for this gap',

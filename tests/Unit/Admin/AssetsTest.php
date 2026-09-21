@@ -136,7 +136,7 @@ describe('the localised payload', function () {
             'assign', 'selectMember', 'addShift', 'applyTemplate', 'selectTemplate',
             'replace', 'prevWeek', 'nextWeek', 'today', 'remove', 'confirmRemove',
             'bulkAssign', 'bulkHint', 'oneSelected', 'manySelected', 'bulkSkipped',
-            'noTemplates', 'unassigned', 'gap', 'gapAddHint', 'saveAsTemplate',
+            'noTemplates', 'unassigned', 'gap', 'gapAddHint', 'gapLocked', 'saveAsTemplate',
             'templateName', 'includeMembers', 'templateNameRequired', 'templateSaved',
             'clearWeek', 'confirmClearWeek', 'clearAssignments', 'confirmClearAssignments',
             'delete', 'addingShift', 'memberOptional', 'newSlotStart', 'newSlotEnd',

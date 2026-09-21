@@ -147,10 +147,12 @@ describe('getWeek gaps', function () {
 
         $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
 
+        // Monday is empty, so nothing runs into Tuesday: its opening gap is
+        // before the rota starts and is locked.
         expect($days[1]['gaps'])->toBe([
-            ['start' => '00:00', 'end' => '09:00'],
-            ['start' => '17:00', 'end' => '24:00'],
-        ])->and($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '24:00']]);
+            ['start' => '00:00', 'end' => '09:00', 'locked' => true],
+            ['start' => '17:00', 'end' => '24:00', 'locked' => false],
+        ])->and($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '24:00', 'locked' => false]]);
     });
 
     it("starts a day's first gap when the previous night's shift ends", function () {
@@ -158,8 +160,8 @@ describe('getWeek gaps', function () {
 
         $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
 
-        expect($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '22:00']])
-            ->and($days[1]['gaps'])->toBe([['start' => '06:00', 'end' => '24:00']]);
+        expect($days[0]['gaps'])->toBe([['start' => '00:00', 'end' => '22:00', 'locked' => true]])
+            ->and($days[1]['gaps'])->toBe([['start' => '06:00', 'end' => '24:00', 'locked' => false]]);
     });
 
     it("carries the previous week's Sunday night into Monday", function () {
@@ -169,7 +171,7 @@ describe('getWeek gaps', function () {
 
         $days = $this->controller->getWeek(restRequest(['start' => '2026-07-20']))->get_data()['days'];
 
-        expect($days[0]['gaps'])->toBe([['start' => '07:00', 'end' => '24:00']]);
+        expect($days[0]['gaps'])->toBe([['start' => '07:00', 'end' => '24:00', 'locked' => false]]);
     });
 
     it('does not list the previous Sunday among the week\'s slots', function () {
