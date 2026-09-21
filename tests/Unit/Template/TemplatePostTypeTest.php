@@ -4,22 +4,17 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Trusted\Template\TemplatePostType;
-use Trusted\Tests\TestCase;
 
-#[CoversClass(\Trusted\Template\TemplatePostType::class)]
-final class TemplatePostTypeTest extends TestCase
-{
-    public function testRegisterRegistersTheTemplateCpt(): void
-    {
-        $GLOBALS['trusted_post_types'] = [];
+covers(TemplatePostType::class);
 
-        (new TemplatePostType())->register();
+it('registers the template post type as private with an admin UI', function () {
+    $GLOBALS['trusted_post_types'] = [];
 
-        self::assertArrayHasKey(TRUSTED_TEMPLATE_POST_TYPE, $GLOBALS['trusted_post_types']);
-        $args = $GLOBALS['trusted_post_types'][TRUSTED_TEMPLATE_POST_TYPE];
-        self::assertFalse($args['public']);
-        self::assertTrue($args['show_ui']);
-    }
-}
+    (new TemplatePostType())->register();
+
+    expect($GLOBALS['trusted_post_types'])->toHaveKey(TRUSTED_TEMPLATE_POST_TYPE)
+        ->and($GLOBALS['trusted_post_types'][TRUSTED_TEMPLATE_POST_TYPE])
+        ->public->toBeFalse()
+        ->show_ui->toBeTrue();
+});

@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Admin;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
 use Trusted\Http\RestController;
-use Trusted\Tests\TestCase;
 
-/**
+/*
  * Tests for the calendar screen's asset enqueuing.
  *
  * enqueue() is driven for real; the shared stubs record every handle in
@@ -27,159 +23,116 @@ use Trusted\Tests\TestCase;
  * shows up in the browser as `undefined` in a button label, which no PHP test
  * would otherwise catch.
  */
-#[CoversClass(\Trusted\Admin\Assets::class)]
-final class AssetsTest extends TestCase
+
+covers(Assets::class);
+
+const CALENDAR_HOOK = 'toplevel_page_' . CalendarPage::SLUG;
+
+function freezeNow(string $when): void
 {
-    private const HOOK = 'toplevel_page_' . CalendarPage::SLUG;
+    Functions\when('current_datetime')->justReturn(new DateTimeImmutable($when));
+}
 
-    private Assets $assets;
+/**
+ * @return array<string, mixed>
+ */
+function localizedData(): array
+{
+    expect(WpState::$localized)->toHaveKey(
+        'TrustedData',
+        message: 'calendar.js reads its configuration from window.TrustedData'
+    );
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    return WpState::$localized['TrustedData'];
+}
 
-        $this->assets = new Assets();
+beforeEach(function () {
+    $this->assets = new Assets();
 
-        // Not in the shared stub layer. Fixed so "this week" is deterministic;
-        // 2026-08-06 is a Thursday.
-        $this->freezeNow('2026-08-06 09:30:00');
-    }
+    // Not in the shared stub layer. Fixed so "this week" is deterministic;
+    // 2026-08-06 is a Thursday.
+    freezeNow('2026-08-06 09:30:00');
+});
 
-    private function freezeNow(string $when): void
-    {
-        when('current_datetime')->justReturn(new DateTimeImmutable($when));
-    }
+// ── the screen gate ───────────────────────────────────────────────
+it('enqueues nothing on another admin screen', function (string $hook) {
+    $this->assets->enqueue($hook);
 
-    /** @return array<string, mixed> */
-    private function localizedData(): array
-    {
-        $this->assertArrayHasKey(
-            'TrustedData',
-            WpState::$localized,
-            'calendar.js reads its configuration from window.TrustedData'
-        );
+    expect(WpState::$enqueued)->toBe([])
+        ->and(WpState::$localized)->toBe([]);
+})->with([
+    'the dashboard'         => ['index.php'],
+    'the posts list'        => ['edit.php'],
+    'another plugin'        => ['toplevel_page_amber'],
+    // The Developer and Help submenus are Trusted's, but the calendar is not
+    // mounted there and its assets are dead weight.
+    'the developer submenu' => ['trusted_page_trusted-developer'],
+    'the help submenu'      => ['trusted_page_trusted-help'],
+]);
 
-        return WpState::$localized['TrustedData'];
-    }
+it('enqueues the calendar stylesheet and script on the calendar screen', function () {
+    $this->assets->enqueue(CALENDAR_HOOK);
 
-    // ── the screen gate ───────────────────────────────────────────────
-    #[DataProvider('foreignHooks')]
-    #[Test]
-    public function nothing_is_enqueued_on_another_admin_screen(string $hook): void
-    {
-        $this->assets->enqueue($hook);
+    expect(WpState::$enqueued)->toBe([
+        ['fn' => 'wp_enqueue_style', 'handle' => 'trusted-calendar'],
+        ['fn' => 'wp_enqueue_script', 'handle' => 'trusted-calendar'],
+    ]);
+});
 
-        $this->assertSame([], WpState::$enqueued);
-        $this->assertSame([], WpState::$localized);
-    }
+// ── the localised payload ─────────────────────────────────────────
+describe('the localised payload', function () {
+    it("points the script at the plugin's own REST namespace", function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-    /** @return array<string, array{0: string}> */
-    public static function foreignHooks(): array
-    {
-        return [
-            'the dashboard'          => ['index.php'],
-            'the posts list'         => ['edit.php'],
-            'another plugin'         => ['toplevel_page_amber'],
-            // The Developer and Help submenus are Trusted's, but the calendar
-            // is not mounted there and its assets are dead weight.
-            'the developer submenu'  => ['trusted_page_trusted-developer'],
-            'the help submenu'       => ['trusted_page_trusted-help'],
-        ];
-    }
+        expect(localizedData())
+            ->restRoot->toEndWith(RestController::NAMESPACE)
+            ->nonce->toBe('nonce-wp_rest', 'the REST nonce action must be wp_rest');
+    });
 
-    #[Test]
-    public function the_calendar_stylesheet_and_script_are_enqueued_on_the_calendar_screen(): void
-    {
-        $this->assets->enqueue(self::HOOK);
-
-        $this->assertSame(
-            [
-                ['fn' => 'wp_enqueue_style', 'handle' => 'trusted-calendar'],
-                ['fn' => 'wp_enqueue_script', 'handle' => 'trusted-calendar'],
-            ],
-            WpState::$enqueued
-        );
-    }
-
-    // ── the localised payload ─────────────────────────────────────────
-    #[Test]
-    public function the_script_is_pointed_at_the_plugins_own_rest_namespace(): void
-    {
-        $this->assets->enqueue(self::HOOK);
-
-        $data = $this->localizedData();
-
-        $this->assertStringEndsWith(RestController::NAMESPACE, $data['restRoot']);
-        $this->assertSame('nonce-wp_rest', $data['nonce'], 'the REST nonce action must be wp_rest');
-    }
-
-    /**
-     * The calendar renders Monday-first or Sunday-first from the site's own
-     * Settings → General value, defaulting to Monday when it is unset.
-     */
-    #[Test]
-    public function the_first_day_of_the_week_comes_from_the_site_setting(): void
-    {
+    // The calendar renders Monday-first or Sunday-first from the site's own
+    // Settings → General value, defaulting to Monday when it is unset.
+    it('takes the first day of the week from the site setting', function () {
         WpState::$options['start_of_week'] = '0';
 
-        $this->assets->enqueue(self::HOOK);
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-        $this->assertSame(0, $this->localizedData()['startDow'], 'startDow should be an int');
-    }
+        expect(localizedData()['startDow'])->toBe(0, 'startDow should be an int');
+    });
 
-    #[Test]
-    public function the_first_day_of_the_week_defaults_to_monday(): void
-    {
-        $this->assets->enqueue(self::HOOK);
+    it('defaults the first day of the week to Monday', function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-        $this->assertSame(1, $this->localizedData()['startDow']);
-    }
+        expect(localizedData()['startDow'])->toBe(1);
+    });
 
-    /**
-     * "This week" is anchored to the site's timezone via current_datetime()
-     * rather than PHP's default. On a site running ahead of UTC, a plain
-     * `new DateTimeImmutable('today')` can still read as yesterday and open
-     * the calendar on the previous week.
-     */
-    #[DataProvider('weekAnchors')]
-    #[Test]
-    public function the_calendar_opens_on_the_monday_of_the_current_week(
-        string $now,
-        string $expectedMonday
-    ): void {
-        $this->freezeNow($now);
+    // "This week" is anchored to the site's timezone via current_datetime()
+    // rather than PHP's default. On a site running ahead of UTC, a plain
+    // `new DateTimeImmutable('today')` can still read as yesterday and open
+    // the calendar on the previous week.
+    it('opens the calendar on the Monday of the current week', function (string $now, string $expectedMonday) {
+        freezeNow($now);
 
-        $this->assets->enqueue(self::HOOK);
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-        $this->assertSame($expectedMonday, $this->localizedData()['weekStart']);
-    }
+        expect(localizedData()['weekStart'])->toBe($expectedMonday);
+    })->with([
+        'Monday stays put'               => ['2026-08-03 00:00:00', '2026-08-03'],
+        'midweek walks back'             => ['2026-08-06 09:30:00', '2026-08-03'],
+        'Sunday belongs to its own week' => ['2026-08-09 23:59:59', '2026-08-03'],
+        'the next Monday moves on'       => ['2026-08-10 00:00:01', '2026-08-10'],
+        'across a month boundary'        => ['2026-09-02 12:00:00', '2026-08-31'],
+        'across a year boundary'         => ['2027-01-01 12:00:00', '2026-12-28'],
+    ]);
 
-    /** @return array<string, array{0: string, 1: string}> */
-    public static function weekAnchors(): array
-    {
-        return [
-            'Monday stays put'            => ['2026-08-03 00:00:00', '2026-08-03'],
-            'midweek walks back'          => ['2026-08-06 09:30:00', '2026-08-03'],
-            'Sunday belongs to its own week' => ['2026-08-09 23:59:59', '2026-08-03'],
-            'the next Monday moves on'    => ['2026-08-10 00:00:01', '2026-08-10'],
-            'across a month boundary'     => ['2026-09-02 12:00:00', '2026-08-31'],
-            'across a year boundary'      => ['2027-01-01 12:00:00', '2026-12-28'],
-        ];
-    }
+    // Every string calendar.js reads out of TrustedData.i18n. Kept as an
+    // explicit list because the failure mode of a dropped key is a button
+    // labelled "undefined" in wp-admin, not an error anywhere in PHP.
+    it('hands the full i18n table to the script', function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-    /**
-     * Every string calendar.js reads out of TrustedData.i18n. Kept as an
-     * explicit list because the failure mode of a dropped key is a button
-     * labelled "undefined" in wp-admin, not an error anywhere in PHP.
-     */
-    #[Test]
-    public function the_full_i18n_table_is_handed_to_the_script(): void
-    {
-        $this->assets->enqueue(self::HOOK);
+        $i18n = localizedData()['i18n'];
 
-        $i18n = $this->localizedData()['i18n'];
-
-        $expected = [
+        expect(array_keys($i18n))->toBe([
             'assign', 'selectMember', 'addShift', 'applyTemplate', 'selectTemplate',
             'replace', 'prevWeek', 'nextWeek', 'today', 'remove', 'confirmRemove',
             'bulkAssign', 'bulkHint', 'oneSelected', 'manySelected', 'bulkSkipped',
@@ -188,28 +141,21 @@ final class AssetsTest extends TestCase
             'clearWeek', 'confirmClearWeek', 'clearAssignments', 'confirmClearAssignments',
             'delete', 'addingShift', 'memberOptional', 'newSlotStart', 'newSlotEnd',
             'newSlotLabel', 'nameRequired', 'invalidTime', 'save', 'cancel',
-        ];
+        ]);
 
-        $this->assertSame($expected, array_keys($i18n));
+        expect($i18n)->each(
+            fn ($string, $key) => $string->not->toBe('', $key . ' should have a translatable string')
+        );
+    });
 
-        foreach ($i18n as $key => $string) {
-            $this->assertNotSame('', $string, $key . ' should have a translatable string');
-        }
-    }
+    // Three of the strings are sprintf templates filled in by the script, so
+    // their placeholders have to survive translation.
+    it('keeps the placeholders in the countable strings', function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
 
-    /**
-     * Three of the strings are sprintf templates filled in by the script, so
-     * their placeholders have to survive translation.
-     */
-    #[Test]
-    public function the_countable_strings_keep_their_placeholders(): void
-    {
-        $this->assets->enqueue(self::HOOK);
-
-        $i18n = $this->localizedData()['i18n'];
-
-        $this->assertStringContainsString('%d', $i18n['manySelected']);
-        $this->assertStringContainsString('%d', $i18n['bulkSkipped']);
-        $this->assertStringContainsString('%s', $i18n['templateSaved']);
-    }
-}
+        expect(localizedData()['i18n'])
+            ->manySelected->toContain('%d')
+            ->bulkSkipped->toContain('%d')
+            ->templateSaved->toContain('%s');
+    });
+});

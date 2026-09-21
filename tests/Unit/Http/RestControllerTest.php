@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Http;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use function Brain\Monkey\Filters\expectApplied;
-use function Brain\Monkey\Functions\expect;
+use Brain\Monkey\Filters;
+use Brain\Monkey\Functions;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
 use Trusted\Http\RestController;
@@ -15,329 +14,333 @@ use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateApplicator;
 use Trusted\Template\TemplateParser;
 use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
-use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Testing\Doubles\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
-use Trusted\Tests\TestCase;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 
-/**
+/*
  * Exercises the trusted/v1 REST endpoints end to end against the in-memory
  * repositories, the real RotaFactory/ShiftSignup and a real TemplateApplicator
  * (final, so it cannot be mocked — its WordPress calls are stubbed instead).
  */
-#[CoversClass(\Trusted\Http\RestController::class)]
-final class RestControllerTest extends TestCase
+
+covers(RestController::class);
+
+/**
+ * Builds the controller and its collaborators over the given repositories,
+ * optionally seeding the member repository (which is constructor-only).
+ *
+ * @param ResponderStub[] $members
+ */
+function restController(
+    InMemoryRotaRepository $rota,
+    InMemoryAssignmentRepository $assignments,
+    array $members = [],
+): RestController {
+    $factory    = new RotaFactory();
+    $memberRepo = new InMemoryMemberRepository($members);
+
+    $applicator = new TemplateApplicator(
+        $rota,
+        $factory,
+        $assignments,
+        new AssignmentFactory(),
+        new ResponderDirectory($memberRepo),
+        new TemplateParser(),
+    );
+
+    return new RestController(
+        $rota,
+        $assignments,
+        $memberRepo,
+        $applicator,
+        $factory,
+        new ShiftSignup($rota, $assignments, $memberRepo),
+    );
+}
+
+function seedSlot(
+    InMemoryRotaRepository $rota,
+    string $date,
+    string $start = '09:00',
+    string $end = '12:00',
+    string $label = 'AM',
+): int {
+    return (int) $rota->save((new RotaFactory())->create($date, $start, $end, $label))->id();
+}
+
+/**
+ * @param array<string, mixed> $params
+ */
+function restRequest(array $params = []): WP_REST_Request
 {
-    private InMemoryRotaRepository $rota;
-    private InMemoryAssignmentRepository $assignments;
-    private RotaFactory $factory;
-    private RestController $controller;
+    return new WP_REST_Request($params);
+}
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->build();
-    }
+beforeEach(function () {
+    $this->rota        = new InMemoryRotaRepository();
+    $this->assignments = new InMemoryAssignmentRepository();
+    $this->controller  = restController($this->rota, $this->assignments);
 
-    /**
-     * (Re)build the controller and its collaborators, optionally seeding the
-     * member repository (which is constructor-only).
-     *
-     * @param ResponderStub[] $members
-     */
-    private function build(array $members = []): void
-    {
-        $this->factory     = new RotaFactory();
-        $this->rota        = new InMemoryRotaRepository();
-        $this->assignments = new InMemoryAssignmentRepository();
-        $memberRepo        = new InMemoryMemberRepository($members);
+    // Gives a controller whose member repository knows a telephone responder
+    // with id 7, over the same rota and assignment stores.
+    $this->withResponder = fn (): RestController => restController(
+        $this->rota,
+        $this->assignments,
+        [new ResponderStub(id: 7, telephoneResponder: true)],
+    );
 
-        $applicator = new TemplateApplicator(
-            $this->rota,
-            $this->factory,
-            $this->assignments,
-            new AssignmentFactory(),
-            new ResponderDirectory($memberRepo),
-            new TemplateParser(),
-        );
+    // A slot on 2026-07-20 whose rota carries a real assignment for member 7.
+    $this->seedAssignedSlot = function (): int {
+        $rotaId = seedSlot($this->rota, '2026-07-20');
+        $this->assignments->assignIfOpen($rotaId, '7', '');
+        $slots = $this->rota->findForWeek('2026-07-20');
+        $this->rota->save($slots[0]->withAssignments($this->assignments->findByRota($rotaId)));
 
-        $signup = new ShiftSignup($this->rota, $this->assignments, $memberRepo);
+        return $rotaId;
+    };
+});
 
-        $this->controller = new RestController(
-            $this->rota,
-            $this->assignments,
-            $memberRepo,
-            $applicator,
-            $this->factory,
-            $signup,
-        );
-    }
-
-    private function seedSlot(string $date, string $start = '09:00', string $end = '12:00', string $label = 'AM'): int
-    {
-        return (int) $this->rota->save($this->factory->create($date, $start, $end, $label))->id();
-    }
-
-    private function request(array $params): WP_REST_Request
-    {
-        return new WP_REST_Request($params);
-    }
-
-    // --- registration / permission / validation ----------------------------
-
-    public function testRegisterRoutesRegistersEndpoints(): void
-    {
+describe('registration, permission and validation', function () {
+    it('registers its endpoints', function () {
         $GLOBALS['trusted_rest_routes'] = [];
+
         $this->controller->registerRoutes();
-        self::assertContains('/rota', $GLOBALS['trusted_rest_routes']);
-        self::assertContains('/members', $GLOBALS['trusted_rest_routes']);
-    }
 
-    public function testCanChecksTheCapability(): void
-    {
-        expectApplied('trusted_capability')->with('manage_options')->andReturn('manage_options');
-        self::assertTrue($this->controller->can());
-    }
+        expect($GLOBALS['trusted_rest_routes'])->toContain('/rota', '/members');
+    });
 
-    public function testIsDateAcceptsRealDatesAndRejectsOverflow(): void
-    {
-        self::assertTrue($this->controller->isDate('2026-07-20'));
-        self::assertFalse($this->controller->isDate('2026-02-31')); // overflow
-        self::assertFalse($this->controller->isDate('nope'));
-        self::assertFalse($this->controller->isDate(123));
-    }
+    it('checks the filtered capability', function () {
+        Filters\expectApplied('trusted_capability')->with('manage_options')->andReturn('manage_options');
 
-    // --- getWeek ------------------------------------------------------------
+        expect($this->controller->can())->toBeTrue();
+    });
 
-    public function testGetWeekReturnsSevenDaysWithSlots(): void
-    {
-        $this->seedSlot('2026-07-20'); // a Monday
-        $data = $this->controller->getWeek($this->request(['start' => '2026-07-22']))->get_data();
+    it('accepts real dates and rejects overflow', function (mixed $value, bool $expected) {
+        expect($this->controller->isDate($value))->toBe($expected);
+    })->with([
+        'real date' => ['2026-07-20', true],
+        'overflow'  => ['2026-02-31', false],
+        'not dated' => ['nope', false],
+        'not text'  => [123, false],
+    ]);
+});
 
-        self::assertSame('2026-07-20', $data['week_start']);
-        self::assertCount(7, $data['days']);
-        self::assertNotEmpty($data['days'][0]['slots']);
-    }
+describe('getWeek', function () {
+    it('returns seven days with their slots', function () {
+        seedSlot($this->rota, '2026-07-20'); // a Monday
 
-    // --- clearWeek ----------------------------------------------------------
+        $data = $this->controller->getWeek(restRequest(['start' => '2026-07-22']))->get_data();
 
-    public function testClearWeekDeletesAnEmptyWeek(): void
-    {
-        $this->seedSlot('2026-07-20');
-        $response = $this->controller->clearWeek($this->request(['start' => '2026-07-20']));
-        self::assertInstanceOf(WP_REST_Response::class, $response);
-        self::assertSame(1, $response->get_data()['deleted']);
-    }
+        expect($data['week_start'])->toBe('2026-07-20')
+            ->and($data['days'])->toHaveCount(7)
+            ->and($data['days'][0]['slots'])->not->toBeEmpty();
+    });
+});
 
-    public function testClearWeekRefusesWhenAssignmentsExist(): void
-    {
-        $rotaId = $this->seedSlot('2026-07-20');
-        $this->assignments->assignIfOpen($rotaId, '7', '');
-        $slots = $this->rota->findForWeek('2026-07-20');
-        $this->rota->save($slots[0]->withAssignments($this->assignments->findByRota($rotaId)));
+describe('clearWeek', function () {
+    it('deletes an empty week', function () {
+        seedSlot($this->rota, '2026-07-20');
 
-        $response = $this->controller->clearWeek($this->request(['start' => '2026-07-20']));
-        self::assertInstanceOf(WP_Error::class, $response);
-        self::assertSame('trusted_week_not_empty', $response->get_error_code());
-    }
+        $response = $this->controller->clearWeek(restRequest(['start' => '2026-07-20']));
 
-    public function testClearWeekAssignmentsRemovesAssignments(): void
-    {
-        $rotaId = $this->seedSlot('2026-07-20');
-        $this->assignments->assignIfOpen($rotaId, '7', '');
-        $slots = $this->rota->findForWeek('2026-07-20');
-        $this->rota->save($slots[0]->withAssignments($this->assignments->findByRota($rotaId)));
+        expect($response)->toBeInstanceOf(WP_REST_Response::class)
+            ->and($response->get_data()['deleted'])->toBe(1);
+    });
 
-        $data = $this->controller->clearWeekAssignments($this->request(['start' => '2026-07-20']))->get_data();
-        self::assertSame(1, $data['deleted']);
-    }
+    it('refuses when assignments exist', function () {
+        ($this->seedAssignedSlot)();
 
-    // --- createSlot / updateSlot / deleteSlot -------------------------------
+        $response = $this->controller->clearWeek(restRequest(['start' => '2026-07-20']));
 
-    public function testCreateSlotValidatesRequiredFields(): void
-    {
-        $response = $this->controller->createSlot($this->request(['date' => 'bad', 'start' => '', 'end' => '', 'label' => '']));
-        self::assertInstanceOf(WP_Error::class, $response);
-        self::assertSame(400, $response->get_error_data()['status']);
-    }
+        expect($response)->toBeInstanceOf(WP_Error::class)
+            ->and($response->get_error_code())->toBe('trusted_week_not_empty');
+    });
 
-    public function testCreateSlotSavesAndReturns201(): void
-    {
-        $response = $this->controller->createSlot($this->request([
+    it('removes the assignments when clearing them', function () {
+        ($this->seedAssignedSlot)();
+
+        $data = $this->controller->clearWeekAssignments(restRequest(['start' => '2026-07-20']))->get_data();
+
+        expect($data['deleted'])->toBe(1);
+    });
+});
+
+describe('slots', function () {
+    it('validates the required fields on create', function () {
+        $response = $this->controller->createSlot(restRequest(['date' => 'bad', 'start' => '', 'end' => '', 'label' => '']));
+
+        expect($response)->toBeInstanceOf(WP_Error::class)
+            ->and($response->get_error_data()['status'])->toBe(400);
+    });
+
+    it('saves a new slot and returns 201', function () {
+        $response = $this->controller->createSlot(restRequest([
             'date' => '2026-07-20', 'start' => '09:00', 'end' => '12:00', 'label' => 'Morning',
         ]));
-        self::assertSame(201, $response->get_status());
-    }
 
-    public function testUpdateSlotReturns404WhenMissing(): void
-    {
-        $response = $this->controller->updateSlot($this->request(['id' => 999]));
-        self::assertInstanceOf(WP_Error::class, $response);
-        self::assertSame(404, $response->get_error_data()['status']);
-    }
+        expect($response->get_status())->toBe(201);
+    });
 
-    public function testUpdateSlotRejectsAnEmptyLabel(): void
-    {
-        $id = $this->seedSlot('2026-07-20');
-        $response = $this->controller->updateSlot($this->request(['id' => $id, 'label' => '']));
-        self::assertInstanceOf(WP_Error::class, $response);
-    }
+    it('returns 404 when updating a missing slot', function () {
+        $response = $this->controller->updateSlot(restRequest(['id' => 999]));
 
-    public function testUpdateSlotUpdatesTimes(): void
-    {
-        $id = $this->seedSlot('2026-07-20', '09:00', '12:00', 'AM');
-        $data = $this->controller->updateSlot($this->request(['id' => $id, 'start' => '10:00', 'label' => 'Late']))->get_data();
-        self::assertSame('10:00', $data['start']);
-    }
+        expect($response)->toBeInstanceOf(WP_Error::class)
+            ->and($response->get_error_data()['status'])->toBe(404);
+    });
 
-    public function testDeleteSlot(): void
-    {
-        $id = $this->seedSlot('2026-07-20');
-        self::assertTrue($this->controller->deleteSlot($this->request(['id' => $id]))->get_data()['deleted']);
-    }
+    it('rejects an empty label on update', function () {
+        $id = seedSlot($this->rota, '2026-07-20');
 
-    // --- assignments --------------------------------------------------------
+        expect($this->controller->updateSlot(restRequest(['id' => $id, 'label' => ''])))->toBeInstanceOf(WP_Error::class);
+    });
 
-    public function testCreateAssignmentRejectsMissingParams(): void
-    {
-        self::assertInstanceOf(WP_Error::class, $this->controller->createAssignment($this->request(['rota_id' => 0])));
-    }
+    it('updates the times', function () {
+        $id = seedSlot($this->rota, '2026-07-20', '09:00', '12:00', 'AM');
 
-    public function testCreateAssignmentRejectsUnknownMember(): void
-    {
-        $rotaId = $this->seedSlot('2026-07-20');
-        self::assertInstanceOf(
-            WP_Error::class,
-            $this->controller->createAssignment($this->request(['rota_id' => $rotaId, 'member_id' => '999']))
-        );
-    }
+        $data = $this->controller->updateSlot(restRequest(['id' => $id, 'start' => '10:00', 'label' => 'Late']))->get_data();
 
-    public function testCreateAssignmentSucceeds(): void
-    {
-        $this->build([new ResponderStub(id: 7, telephoneResponder: true)]);
-        $rotaId = $this->seedSlot('2026-07-20');
+        expect($data['start'])->toBe('10:00');
+    });
 
-        $response = $this->controller->createAssignment($this->request(['rota_id' => $rotaId, 'member_id' => '7']));
-        self::assertSame(201, $response->get_status());
-    }
+    it('deletes a slot', function () {
+        $id = seedSlot($this->rota, '2026-07-20');
 
-    public function testCreateAssignmentReportsSlotFull(): void
-    {
-        $this->build([new ResponderStub(id: 7, telephoneResponder: true)]);
-        $rotaId = $this->seedSlot('2026-07-20');
+        expect($this->controller->deleteSlot(restRequest(['id' => $id]))->get_data()['deleted'])->toBeTrue();
+    });
+});
+
+describe('assignments', function () {
+    it('rejects a create with missing parameters', function () {
+        expect($this->controller->createAssignment(restRequest(['rota_id' => 0])))->toBeInstanceOf(WP_Error::class);
+    });
+
+    it('rejects an unknown member', function () {
+        $rotaId = seedSlot($this->rota, '2026-07-20');
+
+        expect($this->controller->createAssignment(restRequest(['rota_id' => $rotaId, 'member_id' => '999'])))
+            ->toBeInstanceOf(WP_Error::class);
+    });
+
+    it('creates an assignment', function () {
+        $rotaId = seedSlot($this->rota, '2026-07-20');
+
+        $response = ($this->withResponder)()->createAssignment(restRequest(['rota_id' => $rotaId, 'member_id' => '7']));
+
+        expect($response->get_status())->toBe(201);
+    });
+
+    it('reports a full slot', function () {
+        $rotaId = seedSlot($this->rota, '2026-07-20');
         $this->assignments->assignIfOpen($rotaId, '99', ''); // already taken
 
-        $response = $this->controller->createAssignment($this->request(['rota_id' => $rotaId, 'member_id' => '7']));
-        self::assertInstanceOf(WP_Error::class, $response);
-        self::assertSame(409, $response->get_error_data()['status']);
-    }
+        $response = ($this->withResponder)()->createAssignment(restRequest(['rota_id' => $rotaId, 'member_id' => '7']));
 
-    public function testBulkAssignRejectsMissingParams(): void
-    {
-        self::assertInstanceOf(WP_Error::class, $this->controller->bulkAssign($this->request(['member_id' => ''])));
-    }
+        expect($response)->toBeInstanceOf(WP_Error::class)
+            ->and($response->get_error_data()['status'])->toBe(409);
+    });
 
-    public function testBulkAssignSucceeds(): void
-    {
-        $this->build([new ResponderStub(id: 7, telephoneResponder: true)]);
-        $a = $this->seedSlot('2026-07-20');
-        $b = $this->seedSlot('2026-07-21');
+    it('deletes an assignment', function () {
+        $rotaId = seedSlot($this->rota, '2026-07-20');
+        $assignment = $this->assignments->assignIfOpen($rotaId, '7', '');
 
-        $response = $this->controller->bulkAssign($this->request([
+        expect($this->controller->deleteAssignment(restRequest(['id' => (int) $assignment->id()]))->get_data()['deleted'])
+            ->toBeTrue();
+    });
+});
+
+describe('bulkAssign', function () {
+    it('rejects missing parameters', function () {
+        expect($this->controller->bulkAssign(restRequest(['member_id' => ''])))->toBeInstanceOf(WP_Error::class);
+    });
+
+    it('assigns every distinct valid slot', function () {
+        $a = seedSlot($this->rota, '2026-07-20');
+        $b = seedSlot($this->rota, '2026-07-21');
+
+        $response = ($this->withResponder)()->bulkAssign(restRequest([
             'member_id' => '7', 'rota_ids' => [$a, $b, $a, 0], // dupes/invalid dropped
         ]));
-        self::assertSame(201, $response->get_status());
-        self::assertCount(2, $response->get_data()['created']);
-    }
 
-    public function testBulkAssignRejectsUnknownMember(): void
-    {
-        $a = $this->seedSlot('2026-07-20');
-        self::assertInstanceOf(
-            WP_Error::class,
-            $this->controller->bulkAssign($this->request(['member_id' => '999', 'rota_ids' => [$a]]))
-        );
-    }
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['created'])->toHaveCount(2);
+    });
 
-    public function testDeleteAssignment(): void
-    {
-        $rotaId = $this->seedSlot('2026-07-20');
-        $assignment = $this->assignments->assignIfOpen($rotaId, '7', '');
-        self::assertTrue($this->controller->deleteAssignment($this->request(['id' => (int) $assignment->id()]))->get_data()['deleted']);
-    }
+    it('rejects an unknown member', function () {
+        $a = seedSlot($this->rota, '2026-07-20');
 
-    // --- members ------------------------------------------------------------
+        expect($this->controller->bulkAssign(restRequest(['member_id' => '999', 'rota_ids' => [$a]])))
+            ->toBeInstanceOf(WP_Error::class);
+    });
+});
 
-    public function testGetMembersReturnsRespondersAndFilters(): void
-    {
-        $this->build([
+describe('getMembers', function () {
+    it('returns responders and filters them by search', function () {
+        $controller = restController($this->rota, $this->assignments, [
             new ResponderStub(id: 7, telephoneResponder: true, anonymousName: 'Alice'),
             new ResponderStub(id: 8, telephoneResponder: true, anonymousName: 'Bob'),
         ]);
 
-        self::assertCount(2, $this->controller->getMembers($this->request([]))->get_data());
-        self::assertCount(1, $this->controller->getMembers($this->request(['search' => 'alice']))->get_data());
-    }
+        expect($controller->getMembers(restRequest())->get_data())->toHaveCount(2)
+            ->and($controller->getMembers(restRequest(['search' => 'alice']))->get_data())->toHaveCount(1);
+    });
+});
 
-    // --- templates ----------------------------------------------------------
+describe('templates', function () {
+    it('lists templates', function () {
+        Functions\expect('get_posts')->andReturn([(object) ['ID' => 3]]);
+        Functions\expect('get_the_title')->andReturn('Weekday');
 
-    public function testGetTemplates(): void
-    {
-        expect('get_posts')->andReturn([(object) ['ID' => 3]]);
-        expect('get_the_title')->andReturn('Weekday');
+        expect($this->controller->getTemplates()->get_data()[0])->toBe(['id' => 3, 'title' => 'Weekday']);
+    });
 
-        $data = $this->controller->getTemplates()->get_data();
-        self::assertSame(['id' => 3, 'title' => 'Weekday'], $data[0]);
-    }
+    it('validates an apply', function () {
+        expect($this->controller->applyTemplate(restRequest(['template_id' => 0])))->toBeInstanceOf(WP_Error::class);
+    });
 
-    public function testApplyTemplateValidates(): void
-    {
-        self::assertInstanceOf(WP_Error::class, $this->controller->applyTemplate($this->request(['template_id' => 0])));
-    }
-
-    public function testApplyTemplateCreatesSlots(): void
-    {
+    it('applies a template to the snapped week', function () {
         // An empty template (no shift fields) applies cleanly, creating nothing.
-        expect('get_post_meta')->andReturn('');
+        Functions\expect('get_post_meta')->andReturn('');
 
-        $data = $this->controller->applyTemplate($this->request([
+        $data = $this->controller->applyTemplate(restRequest([
             'template_id' => 3, 'week_start' => '2026-07-22', 'replace' => true,
         ]))->get_data();
 
-        self::assertSame(0, $data['created']);
-        self::assertSame('2026-07-20', $data['week_start']);
-    }
+        expect($data['created'])->toBe(0)
+            ->and($data['week_start'])->toBe('2026-07-20');
+    });
 
-    public function testCreateTemplateFromWeekValidates(): void
-    {
-        self::assertInstanceOf(WP_Error::class, $this->controller->createTemplateFromWeek($this->request(['week_start' => 'bad'])));
-        self::assertInstanceOf(WP_Error::class, $this->controller->createTemplateFromWeek($this->request(['week_start' => '2026-07-20', 'title' => ''])));
-    }
+    it('validates creating a template from a week', function (array $params) {
+        expect($this->controller->createTemplateFromWeek(restRequest($params)))->toBeInstanceOf(WP_Error::class);
+    })->with([
+        'bad week start' => [['week_start' => 'bad']],
+        'empty title'    => [['week_start' => '2026-07-20', 'title' => '']],
+    ]);
 
-    public function testCreateTemplateFromWeekSucceeds(): void
-    {
-        expect('wp_insert_post')->andReturn(42);
-        expect('update_post_meta')->andReturn(true);
+    it('creates a template from a week', function () {
+        Functions\expect('wp_insert_post')->andReturn(42);
+        Functions\expect('update_post_meta')->andReturn(true);
 
-        $response = $this->controller->createTemplateFromWeek($this->request([
+        $response = $this->controller->createTemplateFromWeek(restRequest([
             'week_start' => '2026-07-20', 'title' => 'My Template', 'include_members' => false,
         ]));
-        self::assertSame(201, $response->get_status());
-        self::assertSame(42, $response->get_data()['id']);
-    }
 
-    public function testCreateTemplateFromWeekReportsFailure(): void
-    {
-        expect('wp_insert_post')->andReturn(0);
-        expect('update_post_meta')->andReturn(true);
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['id'])->toBe(42);
+    });
 
-        $response = $this->controller->createTemplateFromWeek($this->request([
+    it('reports a failure to create a template', function () {
+        Functions\expect('wp_insert_post')->andReturn(0);
+        Functions\expect('update_post_meta')->andReturn(true);
+
+        $response = $this->controller->createTemplateFromWeek(restRequest([
             'week_start' => '2026-07-20', 'title' => 'My Template',
         ]));
-        self::assertInstanceOf(WP_Error::class, $response);
-        self::assertSame(500, $response->get_error_data()['status']);
-    }
-}
+
+        expect($response)->toBeInstanceOf(WP_Error::class)
+            ->and($response->get_error_data()['status'])->toBe(500);
+    });
+});

@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Structure;
 
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
-
-/**
+/*
  * Every source file must refuse to run outside WordPress.
  *
  * Trusted's src/ had one guarded file out of thirty-three, where the rest of
@@ -24,59 +20,49 @@ use PHPUnit\Framework\TestCase;
  *
  * A pure-PHP test: it reads files, and needs no WordPress at all.
  */
-final class DirectAccessGuardTest extends TestCase
+
+/**
+ * @return array<string, array{string, string}>
+ */
+function sourceFiles(): array
 {
-    #[DataProvider('sourceFiles')]
-    #[Test]
-    public function every_source_file_refuses_direct_access(string $relative, string $absolute): void
-    {
-        $source = (string) file_get_contents($absolute);
+    $root = dirname(__DIR__, 3) . '/src';
 
-        $this->assertMatchesRegularExpression(
-            '/if\s*\(\s*!\s*defined\(\s*[\'"]ABSPATH[\'"]\s*\)\s*\)\s*\{\s*exit;/',
-            $source,
-            $relative . ' is missing the ABSPATH guard. Add it directly below the namespace declaration:'
-                . PHP_EOL . PHP_EOL
-                . "// Prevent direct access" . PHP_EOL
-                . "if (! defined('ABSPATH')) {" . PHP_EOL
-                . '    exit;' . PHP_EOL
-                . '}'
-        );
-    }
+    $files = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+    );
 
-    #[Test]
-    public function the_sweep_actually_found_files(): void
-    {
-        // Guards the guard: a provider that silently returned nothing would
-        // make every assertion above vacuous.
-        $this->assertGreaterThan(25, count(self::sourceFiles()));
-    }
-
-    /**
-     * @return array<string, array{string, string}>
-     */
-    public static function sourceFiles(): array
-    {
-        $root = dirname(__DIR__, 3) . '/src';
-
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
-        );
-
-        $cases = [];
-        foreach ($files as $file) {
-            if (!$file instanceof \SplFileInfo || $file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $absolute = (string) $file->getRealPath();
-            $relative = 'src/' . str_replace('\\', '/', substr($absolute, strlen($root) + 1));
-
-            $cases[$relative] = [$relative, $absolute];
+    $cases = [];
+    foreach ($files as $file) {
+        if (!$file instanceof \SplFileInfo || $file->getExtension() !== 'php') {
+            continue;
         }
 
-        ksort($cases);
+        $absolute = (string) $file->getRealPath();
+        $relative = 'src/' . str_replace('\\', '/', substr($absolute, strlen($root) + 1));
 
-        return $cases;
+        $cases[$relative] = [$relative, $absolute];
     }
+
+    ksort($cases);
+
+    return $cases;
 }
+
+it('refuses direct access in every source file', function (string $relative, string $absolute) {
+    expect((string) file_get_contents($absolute))->toMatch(
+        '/if\s*\(\s*!\s*defined\(\s*[\'"]ABSPATH[\'"]\s*\)\s*\)\s*\{\s*exit;/',
+        $relative . ' is missing the ABSPATH guard. Add it directly below the namespace declaration:'
+            . PHP_EOL . PHP_EOL
+            . '// Prevent direct access' . PHP_EOL
+            . "if (! defined('ABSPATH')) {" . PHP_EOL
+            . '    exit;' . PHP_EOL
+            . '}'
+    );
+})->with(sourceFiles(...));
+
+it('actually found files to sweep', function () {
+    // Guards the guard: a dataset that silently returned nothing would make
+    // every assertion above vacuous.
+    expect(count(sourceFiles()))->toBeGreaterThan(25);
+});
