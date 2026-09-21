@@ -69,6 +69,18 @@ describe('RotaFactory', function () {
             ->and($rota->startTime())->toBe('09:00')
             ->and($rota->templateId())->toBe(4);
     });
+
+    // 24:00 is how people write "to the end of the day"; 23:59 is what is
+    // kept, so the shift stays on its own date.
+    it('stores an end of 24:00 as 23:59', function () {
+        expect((new RotaFactory())->create('2026-07-20', '18:00', '24:00')->endTime())->toBe('23:59');
+    });
+
+    it('reads a legacy 24:00:00 end column back as 23:59', function () {
+        // Slots saved before the rule still hold 24:00:00 in MySQL's TIME
+        // column; they must compare equal to anything saved since.
+        expect((new RotaFactory())->fromRow(['end_time' => '24:00:00'])->endTime())->toBe('23:59');
+    });
 });
 
 describe('AssignmentFactory', function () {

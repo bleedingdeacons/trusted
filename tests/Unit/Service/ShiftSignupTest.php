@@ -157,6 +157,12 @@ describe('openShiftsForDate', function () {
             ->and($signup->openShiftsForDate(DATE)[0]['is_mine'])->toBeFalse('With no member in context nothing is "mine".');
     });
 
+    it('shows a shift running to the end of the day as ending at 24:00', function () {
+        $late = (new \Trusted\Factory\RotaFactory())->create(DATE, '18:00', '24:00', 'Late')->withId(1);
+
+        expect(makeSignup([1 => $late])->openShiftsForDate(DATE)[0]['end'])->toBe('24:00');
+    });
+
     it('returns no shifts for a date with none', function () {
         expect(makeSignup([1 => rota(1)])->openShiftsForDate('2026-12-25'))->toBe([]);
     });

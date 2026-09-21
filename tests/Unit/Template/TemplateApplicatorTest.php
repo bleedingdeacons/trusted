@@ -106,6 +106,16 @@ describe('apply', function () {
         expect($this->applicator->apply(5, '2026-07-20'))->toBe([]);
     });
 
+    it('recognises a 24:00 template shift as the slot it already created', function () {
+        // The slot is stored ending 23:59; the template still says 24:00.
+        // Re-applying must see them as the same shift, not add a duplicate.
+        mondayShifts('18:00-24:00 | Late');
+
+        expect($this->applicator->apply(5, '2026-07-20'))->toHaveCount(1)
+            ->and($this->applicator->apply(5, '2026-07-20'))->toBe([])
+            ->and($this->rota->findForWeek('2026-07-20'))->toHaveCount(1);
+    });
+
     it('clears the week first when replacing', function () {
         $this->rota->save($this->factory->create('2026-07-20', '08:00', '09:00', 'Old'));
         mondayShifts('09:00-12:00 | Morning');
@@ -139,6 +149,17 @@ describe('createFromWeek', function () {
 
         expect($this->applicator->createFromWeek('2026-07-20', 'My Template', false))->toBe(42)
             ->and($written['trusted_shifts_mon'])->toContain('09:00-12:00 | AM');
+    });
+
+    it('writes a shift running to the end of the day as 24:00', function () {
+        $this->rota->save($this->factory->create('2026-07-20', '18:00', '24:00', 'Late'));
+        Functions\expect('wp_insert_post')->andReturn(42);
+        $written = capturePostMeta();
+
+        $this->applicator->createFromWeek('2026-07-20', 'Evenings', false);
+
+        expect($written['trusted_shifts_mon'])->toContain('18:00-24:00 | Late')
+            ->not->toContain('23:59');
     });
 
     it('includes members when asked', function () {

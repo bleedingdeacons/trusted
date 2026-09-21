@@ -108,7 +108,8 @@ final class Rota implements \JsonSerializable
             'id'          => $this->id,
             'date'        => $this->slotDate,
             'start'       => $this->startTime,
-            'end'         => $this->endTime,
+            // Stored as 23:59; shown as the end of the day it is.
+            'end'         => ShiftTime::toShown($this->endTime),
             'label'       => $this->label,
             'template_id' => $this->templateId,
             'assignments' => array_map(
