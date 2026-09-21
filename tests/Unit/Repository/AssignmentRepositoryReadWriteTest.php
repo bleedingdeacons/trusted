@@ -4,132 +4,128 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Repository;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use Mockery\MockInterface;
 use Mockery;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Repository\AssignmentRepository;
-use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
-use Trusted\Tests\TestCase;
+use Unity\Members\Interfaces\Member;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 
-/**
+/*
  * Covers the AssignmentRepository read/write/delete methods that the atomic
  * assignIfOpen suite (AssignmentRepositoryTest) does not.
  */
-#[CoversClass(\Trusted\Repository\AssignmentRepository::class)]
-final class AssignmentRepositoryReadWriteTest extends TestCase
+
+covers(AssignmentRepository::class);
+
+/**
+ * @param list<Member> $members
+ */
+function assignmentRepository(array $members = []): AssignmentRepository
 {
-    /** @return MockInterface */
-    private function wpdb()
-    {
-        $db = Mockery::mock('wpdb');
-        $db->prefix = 'wp_';
-        $db->insert_id = 0;
-        $db->shouldReceive('prepare')->andReturnUsing(static fn (string $q): string => $q);
-        $GLOBALS['wpdb'] = $db;
-        return $db;
-    }
+    return new AssignmentRepository(new AssignmentFactory(), new InMemoryMemberRepository($members));
+}
 
-    private function make($db, array $members = []): AssignmentRepository
-    {
-        $GLOBALS['wpdb'] = $db;
-        return new AssignmentRepository(new AssignmentFactory(), new InMemoryMemberRepository($members));
-    }
+/**
+ * @return array<string, int|string>
+ */
+function assignmentRow(int $id, int $rotaId = 12, string $memberId = '7'): array
+{
+    return ['id' => $id, 'rota_id' => $rotaId, 'member_id' => $memberId, 'notes' => 'n', 'assigned_at' => '2026-07-20 10:00:00'];
+}
 
-    private function row(int $id, int $rotaId = 12, string $memberId = '7'): array
-    {
-        return ['id' => $id, 'rota_id' => $rotaId, 'member_id' => $memberId, 'notes' => 'n', 'assigned_at' => '2026-07-20 10:00:00'];
-    }
+beforeEach(function () {
+    $this->db = Mockery::mock('wpdb');
+    $this->db->prefix = 'wp_';
+    $this->db->insert_id = 0;
+    $this->db->shouldReceive('prepare')->andReturnUsing(static fn (string $q): string => $q);
+    $GLOBALS['wpdb'] = $this->db;
+});
 
-    public function testFindReturnsNullWhenAbsent(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_row')->once()->andReturn(null);
-        self::assertNull($this->make($db)->find(99));
-    }
+describe('find', function () {
+    it('returns null when the row is absent', function () {
+        $this->db->shouldReceive('get_row')->once()->andReturn(null);
 
-    public function testFindHydratesWithMember(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_row')->once()->andReturn($this->row(3, 12, '7'));
+        expect(assignmentRepository()->find(99))->toBeNull();
+    });
 
-        $assignment = $this->make($db, [new ResponderStub(id: 7)])->find(3);
-        self::assertSame(3, $assignment->id());
-        self::assertNotNull($assignment->member());
-    }
+    it('hydrates the assignment with its member', function () {
+        $this->db->shouldReceive('get_row')->once()->andReturn(assignmentRow(3, 12, '7'));
 
-    public function testFindByRota(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_results')->once()->andReturn([$this->row(1), $this->row(2)]);
-        self::assertCount(2, $this->make($db)->findByRota(12));
-    }
+        $assignment = assignmentRepository([new ResponderStub(id: 7)])->find(3);
 
-    public function testFindByRotaIdsGroupsByRota(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_results')->once()->andReturn([
-            $this->row(1, 12), $this->row(2, 13),
+        expect($assignment->id())->toBe(3)
+            ->and($assignment->member())->not->toBeNull();
+    });
+
+    it('yields no member for a non-numeric member id', function () {
+        $this->db->shouldReceive('get_row')->once()->andReturn(assignmentRow(1, 12, 'not-numeric'));
+
+        expect(assignmentRepository()->find(1)->member())->toBeNull();
+    });
+});
+
+describe('findByRota', function () {
+    it('hydrates every row for the rota', function () {
+        $this->db->shouldReceive('get_results')->once()->andReturn([assignmentRow(1), assignmentRow(2)]);
+
+        expect(assignmentRepository()->findByRota(12))->toHaveCount(2);
+    });
+});
+
+describe('findByRotaIds', function () {
+    it('groups the rows by rota', function () {
+        $this->db->shouldReceive('get_results')->once()->andReturn([
+            assignmentRow(1, 12), assignmentRow(2, 13),
         ]);
 
-        $grouped = $this->make($db)->findByRotaIds([12, 13, 12, 0]); // dedupe/filter
-        self::assertArrayHasKey(12, $grouped);
-        self::assertArrayHasKey(13, $grouped);
-    }
+        expect(assignmentRepository()->findByRotaIds([12, 13, 12, 0])) // dedupe/filter
+            ->toHaveKey(12)
+            ->toHaveKey(13);
+    });
 
-    public function testFindByRotaIdsEmptyInput(): void
-    {
-        $db = $this->wpdb();
-        self::assertSame([], $this->make($db)->findByRotaIds(['x', 0, '0']));
-    }
+    it('returns empty for input with no usable ids', function () {
+        expect(assignmentRepository()->findByRotaIds(['x', 0, '0']))->toBe([]);
+    });
+});
 
-    public function testSaveInserts(): void
-    {
-        $db = $this->wpdb();
-        $db->insert_id = 88;
-        $db->shouldReceive('insert')->once()->andReturn(1);
+describe('save', function () {
+    it('inserts a new assignment and takes the insert id', function () {
+        $this->db->insert_id = 88;
+        $this->db->shouldReceive('insert')->once()->andReturn(1);
 
-        $saved = $this->make($db, [new ResponderStub(id: 7)])
+        $saved = assignmentRepository([new ResponderStub(id: 7)])
             ->save((new AssignmentFactory())->create(12, '7', 'note'));
-        self::assertSame(88, $saved->id());
-    }
 
-    public function testSaveUpdates(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('update')->once()->andReturn(1);
+        expect($saved->id())->toBe(88);
+    });
+
+    it('updates an existing assignment', function () {
+        $this->db->shouldReceive('update')->once()->andReturn(1);
 
         $existing = (new AssignmentFactory())->create(12, '7', 'note')->withId(5);
-        self::assertSame(5, $this->make($db)->save($existing)->id());
-    }
 
-    public function testDelete(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('delete')->once()->andReturn(1);
-        self::assertTrue($this->make($db)->delete(5));
-    }
+        expect(assignmentRepository()->save($existing)->id())->toBe(5);
+    });
+});
 
-    public function testDeleteByRota(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('delete')->once()->andReturn(2);
-        self::assertTrue($this->make($db)->deleteByRota(12));
-    }
+describe('delete', function () {
+    it('deletes one assignment', function () {
+        $this->db->shouldReceive('delete')->once()->andReturn(1);
 
-    public function testDeleteAll(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_var')->once()->andReturn('3');
-        $db->shouldReceive('query')->once()->andReturn(3);
-        self::assertSame(3, $this->make($db)->deleteAll());
-    }
+        expect(assignmentRepository()->delete(5))->toBeTrue();
+    });
 
-    public function testHydrateWithNonNumericMemberYieldsNoMember(): void
-    {
-        $db = $this->wpdb();
-        $db->shouldReceive('get_row')->once()->andReturn($this->row(1, 12, 'not-numeric'));
-        self::assertNull($this->make($db)->find(1)->member());
-    }
-}
+    it("deletes a rota's assignments", function () {
+        $this->db->shouldReceive('delete')->once()->andReturn(2);
+
+        expect(assignmentRepository()->deleteByRota(12))->toBeTrue();
+    });
+
+    it('deletes everything and reports the count', function () {
+        $this->db->shouldReceive('get_var')->once()->andReturn('3');
+        $this->db->shouldReceive('query')->once()->andReturn(3);
+
+        expect(assignmentRepository()->deleteAll())->toBe(3);
+    });
+});

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Service;
 
-use PHPUnit\Framework\Attributes\Test;
 use InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
 use Trusted\Domain\Assignment;
 use Trusted\Domain\Member;
 use Trusted\Domain\Rota;
@@ -15,7 +13,7 @@ use Trusted\Testing\Doubles\InMemoryAssignmentRepository;
 use Trusted\Testing\Doubles\InMemoryRotaRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
 
-/**
+/*
  * Tests for the sign-up rules.
  *
  * ShiftSignup is the service sibling plugins resolve from Unity's container
@@ -23,51 +21,50 @@ use Trusted\Tests\Fixtures\ResponderStub;
  * this plugin: responders only, one member per shift, and never leaking a
  * responder's contact details to another member.
  */
-final class ShiftSignupTest extends TestCase
+
+const DATE = '2026-07-20';
+
+/**
+ * @param array<int, Rota> $rotas
+ */
+function makeSignup(array $rotas, ?InMemoryAssignmentRepository $assignments = null): ShiftSignup
 {
-    private const DATE = '2026-07-20';
+    return new ShiftSignup(
+        new InMemoryRotaRepository($rotas),
+        $assignments ?? new InMemoryAssignmentRepository(),
+    );
+}
 
-    #[Test]
-    public function it_refuses_to_assign_a_member_who_is_not_a_telephone_responder(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
+function rota(int $id): Rota
+{
+    return new Rota(
+        id: $id,
+        slotDate: DATE,
+        startTime: '09:00',
+        endTime: '17:00',
+        label: 'Day shift',
+    );
+}
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Member is not a telephone responder.');
+describe('assignResponder', function () {
+    it('refuses a member who is not a telephone responder', function () {
+        makeSignup([1 => rota(1)])->assignResponder(new ResponderStub(id: 7, telephoneResponder: false), [1]);
+    })->throws(InvalidArgumentException::class, 'Member is not a telephone responder.');
 
-        $signup->assignResponder(new ResponderStub(id: 7, telephoneResponder: false), [1]);
-    }
+    it('assigns a responder to an open shift', function () {
+        $result = makeSignup([1 => rota(1)])->assignResponder(new ResponderStub(id: 7), [1], 'Happy to cover');
 
-    #[Test]
-    public function it_refuses_to_remove_a_sign_up_for_a_member_who_is_not_a_responder(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
+        expect($result['assigned'])->toHaveCount(1)
+            ->and($result['skipped'])->toBe([])
+            ->and($result['assigned'][0]['member_id'])->toBe('7')
+            ->and($result['assigned'][0]['notes'])->toBe('Happy to cover');
+    });
 
-        $this->expectException(InvalidArgumentException::class);
-
-        $signup->removeResponder(new ResponderStub(id: 7, telephoneResponder: false), 1);
-    }
-
-    #[Test]
-    public function it_assigns_a_responder_to_an_open_shift(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
-
-        $result = $signup->assignResponder(new ResponderStub(id: 7), [1], 'Happy to cover');
-
-        self::assertCount(1, $result['assigned']);
-        self::assertSame([], $result['skipped']);
-        self::assertSame('7', $result['assigned'][0]['member_id']);
-        self::assertSame('Happy to cover', $result['assigned'][0]['notes']);
-    }
-
-    #[Test]
-    public function it_skips_a_shift_that_is_already_taken_rather_than_failing(): void
-    {
+    it('skips a shift that is already taken rather than failing', function () {
         // One member per shift. The second sign-up is reported, not thrown:
         // a caller needs to tell the member what was left out.
-        $signup = $this->makeSignup(
-            [1 => $this->rota(1)],
+        $signup = makeSignup(
+            [1 => rota(1)],
             new InMemoryAssignmentRepository([
                 1 => new Assignment(id: 1, rotaId: 1, memberId: '99'),
             ])
@@ -75,129 +72,92 @@ final class ShiftSignupTest extends TestCase
 
         $result = $signup->assignResponder(new ResponderStub(id: 7), [1]);
 
-        self::assertSame([], $result['assigned']);
-        self::assertSame([['rota_id' => 1, 'reason' => 'full']], $result['skipped']);
-    }
+        expect($result['assigned'])->toBe([])
+            ->and($result['skipped'])->toBe([['rota_id' => 1, 'reason' => 'full']]);
+    });
 
-    #[Test]
-    public function it_skips_a_shift_that_does_not_exist(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
+    it('skips a shift that does not exist', function () {
+        $result = makeSignup([1 => rota(1)])->assignResponder(new ResponderStub(id: 7), [1, 404]);
 
-        $result = $signup->assignResponder(new ResponderStub(id: 7), [1, 404]);
+        expect($result['assigned'])->toHaveCount(1)
+            ->and($result['skipped'])->toBe([['rota_id' => 404, 'reason' => 'not_found']]);
+    });
 
-        self::assertCount(1, $result['assigned']);
-        self::assertSame([['rota_id' => 404, 'reason' => 'not_found']], $result['skipped']);
-    }
-
-    #[Test]
-    public function it_de_duplicates_and_discards_non_positive_ids(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1), 2 => $this->rota(2)]);
+    it('de-duplicates and discards non-positive ids', function () {
+        $signup = makeSignup([1 => rota(1), 2 => rota(2)]);
 
         // 1 twice, plus a zero and a negative that must be dropped entirely —
         // not reported as not_found, since they were never real ids.
         $result = $signup->assignResponder(new ResponderStub(id: 7), [1, 1, 0, -3, 2]);
 
-        self::assertCount(2, $result['assigned']);
-        self::assertSame([], $result['skipped']);
-    }
+        expect($result['assigned'])->toHaveCount(2)
+            ->and($result['skipped'])->toBe([]);
+    });
+});
 
-    #[Test]
-    public function it_removes_only_the_members_own_sign_up(): void
-    {
+describe('removeResponder', function () {
+    it('refuses a member who is not a responder', function () {
+        makeSignup([1 => rota(1)])->removeResponder(new ResponderStub(id: 7, telephoneResponder: false), 1);
+    })->throws(InvalidArgumentException::class);
+
+    it("removes only the member's own sign-up", function () {
         $assignments = new InMemoryAssignmentRepository([
             1 => new Assignment(id: 1, rotaId: 1, memberId: '99'),
         ]);
-        $signup = $this->makeSignup([1 => $this->rota(1)], $assignments);
+        $signup = makeSignup([1 => rota(1)], $assignments);
 
         // Member 7 has no assignment on this shift; 99's must survive.
-        self::assertFalse($signup->removeResponder(new ResponderStub(id: 7), 1));
-        self::assertCount(1, $assignments->findByRota(1));
+        expect($signup->removeResponder(new ResponderStub(id: 7), 1))->toBeFalse()
+            ->and($assignments->findByRota(1))->toHaveCount(1);
 
         // The owner can remove their own.
-        self::assertTrue($signup->removeResponder(new ResponderStub(id: 99), 1));
-        self::assertSame([], $assignments->findByRota(1));
-    }
+        expect($signup->removeResponder(new ResponderStub(id: 99), 1))->toBeTrue()
+            ->and($assignments->findByRota(1))->toBe([]);
+    });
+});
 
-    #[Test]
-    public function it_reports_an_open_shift_with_no_assignee(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
+describe('openShiftsForDate', function () {
+    it('reports an open shift with no assignee', function () {
+        $shifts = makeSignup([1 => rota(1)])->openShiftsForDate(DATE);
 
-        $shifts = $signup->openShiftsForDate(self::DATE);
+        expect($shifts)->toHaveCount(1)
+            ->and($shifts[0]['is_open'])->toBeTrue()
+            ->and($shifts[0]['assignee'])->toBe('')
+            ->and($shifts[0]['is_mine'])->toBeFalse();
+    });
 
-        self::assertCount(1, $shifts);
-        self::assertTrue($shifts[0]['is_open']);
-        self::assertSame('', $shifts[0]['assignee']);
-        self::assertFalse($shifts[0]['is_mine']);
-    }
-
-    #[Test]
-    public function it_names_the_assignee_of_a_filled_shift_but_never_their_contact_details(): void
-    {
+    it('names the assignee of a filled shift but never their contact details', function () {
         $member = new Member(id: '99', name: 'Jane S', email: 'jane@example.test', telephone: '07700 900999');
-        $rota = $this->rota(1)->withAssignments([
+        $rota = rota(1)->withAssignments([
             (new Assignment(id: 1, rotaId: 1, memberId: '99'))->withMember($member),
         ]);
 
-        $shifts = $this->makeSignup([1 => $rota])->openShiftsForDate(self::DATE);
+        $shifts = makeSignup([1 => $rota])->openShiftsForDate(DATE);
 
-        self::assertFalse($shifts[0]['is_open']);
-        self::assertSame('Jane S', $shifts[0]['assignee']);
+        expect($shifts[0]['is_open'])->toBeFalse()
+            ->and($shifts[0]['assignee'])->toBe('Jane S');
 
         // The whole point of the projection: a member browsing the day sees who
         // is covering, never how to contact them.
-        $encoded = json_encode($shifts);
-        self::assertIsString($encoded);
-        self::assertStringNotContainsString('jane@example.test', $encoded);
-        self::assertStringNotContainsString('07700 900999', $encoded);
-    }
+        expect(json_encode($shifts))
+            ->toBeString()
+            ->not->toContain('jane@example.test')
+            ->not->toContain('07700 900999');
+    });
 
-    #[Test]
-    public function it_flags_the_members_own_shift(): void
-    {
+    it("flags the member's own shift", function () {
         $member = new Member(id: '99', name: 'Jane S', email: '', telephone: '');
-        $rota = $this->rota(1)->withAssignments([
+        $rota = rota(1)->withAssignments([
             (new Assignment(id: 1, rotaId: 1, memberId: '99'))->withMember($member),
         ]);
-        $signup = $this->makeSignup([1 => $rota]);
+        $signup = makeSignup([1 => $rota]);
 
-        self::assertTrue($signup->openShiftsForDate(self::DATE, '99')[0]['is_mine']);
-        self::assertFalse($signup->openShiftsForDate(self::DATE, '7')[0]['is_mine']);
-        self::assertFalse(
-            $signup->openShiftsForDate(self::DATE)[0]['is_mine'],
-            'With no member in context nothing is "mine".'
-        );
-    }
+        expect($signup->openShiftsForDate(DATE, '99')[0]['is_mine'])->toBeTrue()
+            ->and($signup->openShiftsForDate(DATE, '7')[0]['is_mine'])->toBeFalse()
+            ->and($signup->openShiftsForDate(DATE)[0]['is_mine'])->toBeFalse('With no member in context nothing is "mine".');
+    });
 
-    #[Test]
-    public function it_returns_no_shifts_for_a_date_with_none(): void
-    {
-        $signup = $this->makeSignup([1 => $this->rota(1)]);
-
-        self::assertSame([], $signup->openShiftsForDate('2026-12-25'));
-    }
-
-    /**
-     * @param array<int, Rota> $rotas
-     */
-    private function makeSignup(array $rotas, ?InMemoryAssignmentRepository $assignments = null): ShiftSignup
-    {
-        return new ShiftSignup(
-            new InMemoryRotaRepository($rotas),
-            $assignments ?? new InMemoryAssignmentRepository(),
-        );
-    }
-
-    private function rota(int $id): Rota
-    {
-        return new Rota(
-            id: $id,
-            slotDate: self::DATE,
-            startTime: '09:00',
-            endTime: '17:00',
-            label: 'Day shift',
-        );
-    }
-}
+    it('returns no shifts for a date with none', function () {
+        expect(makeSignup([1 => rota(1)])->openShiftsForDate('2026-12-25'))->toBe([]);
+    });
+});

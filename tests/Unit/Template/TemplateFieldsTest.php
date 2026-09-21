@@ -4,75 +4,59 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use function Brain\Monkey\Functions\expect;
+use Brain\Monkey\Functions;
 use Trusted\Template\TemplateFields;
-use Trusted\Tests\TestCase;
 
-#[CoversClass(\Trusted\Template\TemplateFields::class)]
-final class TemplateFieldsTest extends TestCase
-{
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $_POST = [];
-        $GLOBALS['trusted_acf_groups'] = [];
-    }
+covers(TemplateFields::class);
 
-    protected function tearDown(): void
-    {
-        $_POST = [];
-        parent::tearDown();
-    }
+beforeEach(function () {
+    $_POST = [];
+    $GLOBALS['trusted_acf_groups'] = [];
+});
 
-    public function testFieldKeyPrefixes(): void
-    {
-        self::assertSame('field_trusted_shifts_mon', TemplateFields::fieldKey('trusted_shifts_mon'));
-    }
+afterEach(function () {
+    $_POST = [];
+});
 
-    public function testDayFieldsMapToIsoWeekdays(): void
-    {
-        self::assertSame(1, TemplateFields::DAY_FIELDS['trusted_shifts_mon']);
-        self::assertSame(7, TemplateFields::DAY_FIELDS['trusted_shifts_sun']);
-    }
+it('prefixes field keys', function () {
+    expect(TemplateFields::fieldKey('trusted_shifts_mon'))->toBe('field_trusted_shifts_mon');
+});
 
-    public function testRegisterBuildsTheFieldGroup(): void
-    {
-        // acf_add_local_field_group is defined (test stub), so register() runs
-        // its full body rather than the ACF-absent early return.
-        (new TemplateFields())->register();
+it('maps the day fields to ISO weekdays', function () {
+    expect(TemplateFields::DAY_FIELDS['trusted_shifts_mon'])->toBe(1)
+        ->and(TemplateFields::DAY_FIELDS['trusted_shifts_sun'])->toBe(7);
+});
 
-        self::assertNotEmpty($GLOBALS['trusted_acf_groups']);
-        $group = $GLOBALS['trusted_acf_groups'][0];
-        self::assertSame('group_trusted_template', $group['key']);
+it('builds the field group', function () {
+    // acf_add_local_field_group is defined (test stub), so register() runs
+    // its full body rather than the ACF-absent early return.
+    (new TemplateFields())->register();
+
+    expect($GLOBALS['trusted_acf_groups'])->not->toBeEmpty()
+        ->and($GLOBALS['trusted_acf_groups'][0]['key'])->toBe('group_trusted_template')
         // Help message field + 7 day textareas.
-        self::assertCount(8, $group['fields']);
-    }
+        ->and($GLOBALS['trusted_acf_groups'][0]['fields'])->toHaveCount(8);
+});
 
-    public function testValidateTemplateNameIgnoresOtherPostTypes(): void
-    {
+describe('validateTemplateName', function () {
+    it('ignores other post types', function () {
         $_POST = ['post_type' => 'post', 'post_title' => ''];
-        expect('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
-        self::assertTrue(true);
-    }
+    });
 
-    public function testValidateTemplateNameRejectsAnEmptyTitle(): void
-    {
+    it('rejects an empty title', function () {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => '   '];
-        expect('acf_add_validation_error')->once();
+        Functions\expect('acf_add_validation_error')->once();
 
         (new TemplateFields())->validateTemplateName();
-        self::assertTrue(true);
-    }
+    });
 
-    public function testValidateTemplateNameAcceptsANonEmptyTitle(): void
-    {
+    it('accepts a non-empty title', function () {
         $_POST = ['post_type' => TRUSTED_TEMPLATE_POST_TYPE, 'post_title' => 'My Template'];
-        expect('acf_add_validation_error')->never();
+        Functions\expect('acf_add_validation_error')->never();
 
         (new TemplateFields())->validateTemplateName();
-        self::assertTrue(true);
-    }
-}
+    });
+});

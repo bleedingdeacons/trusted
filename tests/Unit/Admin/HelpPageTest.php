@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Admin;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use function Brain\Monkey\Filters\expectApplied;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Filters;
 use Trusted\Admin\CalendarPage;
 use Trusted\Admin\HelpPage;
-use Trusted\Tests\TestCase;
 
-/**
+/*
  * Tests for the Help submenu and the footer script that hijacks its click.
  *
  * register() runs for real against WpState's menu recorder and Brain Monkey's
@@ -22,66 +19,39 @@ use Trusted\Tests\TestCase;
  * that lets the guide's back button refocus the admin tab instead of
  * reloading it.
  */
-#[CoversClass(\Trusted\Admin\HelpPage::class)]
-final class HelpPageTest extends TestCase
-{
-    private HelpPage $page;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+covers(HelpPage::class);
 
-        $this->page = new HelpPage();
-    }
+beforeEach(function () {
+    $this->page = new HelpPage();
+});
 
-    private function capture(callable $render): string
-    {
-        ob_start();
-
-        try {
-            $render();
-        } finally {
-            $html = (string) ob_get_clean();
-        }
-
-        return $html;
-    }
-
-    // ── registration ──────────────────────────────────────────────────
-    #[Test]
-    public function it_registers_a_help_submenu_under_the_trusted_menu(): void
-    {
+// ── registration ──────────────────────────────────────────────────
+describe('register', function () {
+    it('registers a Help submenu under the Trusted menu', function () {
         $this->page->register();
 
-        $this->assertCount(1, WpState::$menus);
+        expect(WpState::$menus)->toHaveCount(1)
+            ->and(WpState::$menus[0])
+            ->type->toBe('submenu')
+            ->parent->toBe(CalendarPage::SLUG)
+            ->slug->toBe(HelpPage::SLUG)
+            ->title->toBe('Help')
+            ->cap->toBe('manage_options');
+    });
 
-        $menu = WpState::$menus[0];
-
-        $this->assertSame('submenu', $menu['type']);
-        $this->assertSame(CalendarPage::SLUG, $menu['parent']);
-        $this->assertSame(HelpPage::SLUG, $menu['slug']);
-        $this->assertSame('Help', $menu['title']);
-        $this->assertSame('manage_options', $menu['cap']);
-    }
-
-    #[Test]
-    public function the_submenu_capability_is_filterable(): void
-    {
-        expectApplied('trusted_capability')->andReturn('edit_trusted_rota');
+    it('uses the filtered capability', function () {
+        Filters\expectApplied('trusted_capability')->andReturn('edit_trusted_rota');
 
         $this->page->register();
 
-        $this->assertSame('edit_trusted_rota', WpState::$menus[0]['cap']);
-    }
+        expect(WpState::$menus[0]['cap'])->toBe('edit_trusted_rota');
+    });
 
-    /**
-     * The click interceptor has to be printed on every admin screen, not just
-     * this one — the Help link lives in the sidebar and is clicked from
-     * wherever the user happens to be.
-     */
-    #[Test]
-    public function registering_also_hooks_the_footer_script(): void
-    {
+    // The click interceptor has to be printed on every admin screen, not just
+    // this one — the Help link lives in the sidebar and is clicked from
+    // wherever the user happens to be.
+    it('also hooks the footer script', function () {
         $this->page->register();
 
         $this->assertActionAdded(
@@ -89,100 +59,67 @@ final class HelpPageTest extends TestCase
             [$this->page, 'enqueueHelpTabScript'],
             'the click interceptor must be printed in the admin footer'
         );
-    }
+    });
+});
 
-    // ── the no-JavaScript fallback ────────────────────────────────────
-    #[Test]
-    public function the_fallback_page_links_straight_to_the_bundled_guide(): void
-    {
-        $html = $this->capture(fn () => $this->page->render());
+// ── the no-JavaScript fallback ────────────────────────────────────
+describe('render', function () {
+    it('links straight to the bundled guide', function () {
+        expect(captureOutput(fn () => $this->page->render()))
+            ->toContain('<h1>Trusted Help</h1>', 'assets/docs/trusted.html', 'Open the guide');
+    });
 
-        $this->assertStringContainsString('<h1>Trusted Help</h1>', $html);
-        $this->assertStringContainsString('assets/docs/trusted.html', $html);
-        $this->assertStringContainsString('Open the guide', $html);
-    }
+    // The fallback opens a new tab, so it needs rel="noopener" — without it
+    // the guide gets a handle on wp-admin through window.opener.
+    it('opens the guide safely in a new tab', function () {
+        expect(captureOutput(fn () => $this->page->render()))
+            ->toContain('target="_blank"', 'rel="noopener"');
+    });
+});
 
-    /**
-     * The fallback opens a new tab, so it needs rel="noopener" — without it
-     * the guide gets a handle on wp-admin through window.opener.
-     */
-    #[Test]
-    public function the_fallback_link_opens_safely_in_a_new_tab(): void
-    {
-        $html = $this->capture(fn () => $this->page->render());
+// ── the click interceptor ─────────────────────────────────────────
+describe('enqueueHelpTabScript', function () {
+    beforeEach(function () {
+        $this->script = captureOutput(fn () => $this->page->enqueueHelpTabScript());
+    });
 
-        $this->assertStringContainsString('target="_blank"', $html);
-        $this->assertStringContainsString('rel="noopener"', $html);
-    }
+    it('emits an inline script block', function () {
+        expect($this->script)->toContain('<script>', '</script>');
+    });
 
-    // ── the click interceptor ─────────────────────────────────────────
-    #[Test]
-    public function the_footer_script_is_emitted_as_an_inline_script_block(): void
-    {
-        $html = $this->capture(fn () => $this->page->enqueueHelpTabScript());
-
-        $this->assertStringContainsString('<script>', $html);
-        $this->assertStringContainsString('</script>', $html);
-    }
-
-    /**
-     * The script finds the Help link by its exact admin URL and falls back to
-     * a slug match if WordPress rendered the href differently — both selectors
-     * are load-bearing.
-     */
-    #[Test]
-    public function the_script_matches_the_help_link_by_url_and_by_slug(): void
-    {
-        $html = $this->capture(fn () => $this->page->enqueueHelpTabScript());
-
-        $this->assertStringContainsString(
+    // The script finds the Help link by its exact admin URL and falls back to
+    // a slug match if WordPress rendered the href differently — both
+    // selectors are load-bearing.
+    it('matches the Help link by URL and by slug', function () {
+        expect($this->script)->toContain(
             'a[href="https://example.test/wp-admin/admin.php?page=' . HelpPage::SLUG . '"]',
-            $html
+            'a[href*="page=' . HelpPage::SLUG . '"]',
         );
-        $this->assertStringContainsString('a[href*="page=' . HelpPage::SLUG . '"]', $html);
-    }
+    });
 
-    /**
-     * The two window names are how the guide gets back: the admin tab is named
-     * so the guide can refocus it, and the guide tab is named so a second click
-     * reuses it rather than piling up tabs.
-     */
-    #[Test]
-    public function the_script_names_both_tabs_and_passes_the_admin_url_back(): void
-    {
-        $html = $this->capture(fn () => $this->page->enqueueHelpTabScript());
+    // The two window names are how the guide gets back: the admin tab is
+    // named so the guide can refocus it, and the guide tab is named so a
+    // second click reuses it rather than piling up tabs.
+    it('names both tabs and passes the admin URL back', function () {
+        expect($this->script)->toContain(
+            "window.name = 'trusted-admin'",
+            "window.open('', 'trusted-help')",
+            "'?back=' + encodeURIComponent(window.location.href)",
+            'assets/docs/trusted.html',
+        );
+    });
 
-        $this->assertStringContainsString("window.name = 'trusted-admin'", $html);
-        $this->assertStringContainsString("window.open('', 'trusted-help')", $html);
-        $this->assertStringContainsString("'?back=' + encodeURIComponent(window.location.href)", $html);
-        $this->assertStringContainsString('assets/docs/trusted.html', $html);
-    }
+    // window.open() returns null when a popup blocker or an extension refuses
+    // the window. preventDefault() has already run by then, so without an
+    // explicit fallback the Help link would be inert — and the next line
+    // would throw on the null handle rather than failing quietly.
+    it('falls back to the current tab when the window is blocked', function () {
+        expect($this->script)->toContain('if (!existing) {', 'window.location.href = helpUrl;');
+    });
 
-    /**
-     * window.open() returns null when a popup blocker or an extension refuses
-     * the window. preventDefault() has already run by then, so without an
-     * explicit fallback the Help link would be inert — and the next line would
-     * throw on the null handle rather than failing quietly.
-     */
-    #[Test]
-    public function the_script_falls_back_to_the_current_tab_when_the_window_is_blocked(): void
-    {
-        $html = $this->capture(fn () => $this->page->enqueueHelpTabScript());
-
-        $this->assertStringContainsString('if (!existing) {', $html);
-        $this->assertStringContainsString('window.location.href = helpUrl;', $html);
-    }
-
-    /**
-     * preventDefault() is what stops WordPress navigating to the fallback page;
-     * without it the named-tab trick never runs.
-     */
-    #[Test]
-    public function the_script_suppresses_the_default_navigation(): void
-    {
-        $html = $this->capture(fn () => $this->page->enqueueHelpTabScript());
-
-        $this->assertStringContainsString('e.preventDefault()', $html);
-        $this->assertStringContainsString("addEventListener('click'", $html);
-    }
-}
+    // preventDefault() is what stops WordPress navigating to the fallback
+    // page; without it the named-tab trick never runs.
+    it('suppresses the default navigation', function () {
+        expect($this->script)->toContain('e.preventDefault()', "addEventListener('click'");
+    });
+});

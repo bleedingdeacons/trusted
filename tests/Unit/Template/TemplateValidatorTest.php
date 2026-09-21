@@ -4,224 +4,175 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Template;
 
-use PHPUnit\Framework\Attributes\Test;
-use function Brain\Monkey\Functions\expect;
+use Brain\Monkey\Functions;
 use Trusted\Support\ResponderDirectory;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplateParser;
 use Trusted\Template\TemplateValidator;
-use Unity\Testing\Doubles\InMemoryMemberRepository;
 use Trusted\Tests\Fixtures\ResponderStub;
-use Trusted\Tests\TestCase;
 use Unity\Members\Interfaces\Member as UnityMember;
+use Unity\Testing\Doubles\InMemoryMemberRepository;
 
-/**
+/*
  * Tests for template save-time validation.
  *
  * This is what stops a template carrying a member name that will not resolve
  * when the template is later applied: every shift must be named, and any
  * member named must be a Unity member who is a telephone responder.
  * Reporting an error against the day field is what blocks the ACF save.
+ *
+ * Translation is a pass-through here; the assertions are about which field
+ * an error lands on and which branch produced it, not wording.
  */
-final class TemplateValidatorTest extends TestCase
+
+const MON_KEY = 'field_trusted_shifts_mon';
+
+/**
+ * ResponderDirectory is final, so it is driven for real through a fake
+ * repository rather than mocked. That exercises its actual name matching
+ * — trimmed, case-insensitive, first match wins — instead of a stubbed
+ * approximation of it.
+ *
+ * @param UnityMember[] $members
+ */
+function templateValidator(array $members = []): TemplateValidator
 {
-    private const MON_KEY = 'field_trusted_shifts_mon';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $_POST = [];
-
-        // Translation is a pass-through here; the assertions are about which
-        // field an error lands on and which branch produced it, not wording.
-    }
-
-    protected function tearDown(): void
-    {
-        $_POST = [];
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_does_nothing_when_acf_is_not_present(): void
-    {
-        // validate() returns early unless acf_add_validation_error exists, so a
-        // non-ACF request cannot blow up. No expectation is registered for it,
-        // so any call would fail this test.
-        $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | John D'];
-
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertTrue(true, 'validate() completed without reaching ACF.');
-    }
-
-    #[Test]
-    public function it_ignores_forms_that_are_not_ours(): void
-    {
-        expect('acf_add_validation_error')->never();
-
-        // No acf payload at all — some other form is saving.
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertTrue(true, 'A foreign form is left alone.');
-    }
-
-    #[Test]
-    public function it_accepts_a_template_naming_a_telephone_responder(): void
-    {
-        expect('acf_add_validation_error')->never();
-
-        $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | John D'];
-
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertTrue(true, 'A valid responder raises no error.');
-    }
-
-    #[Test]
-    public function it_blocks_a_save_naming_a_member_who_is_not_a_responder(): void
-    {
-        $captured = [];
-        expect('acf_add_validation_error')
-            ->once()
-            ->andReturnUsing(function (string $field, string $message) use (&$captured): void {
-                $captured = ['field' => $field, 'message' => $message];
-            });
-
-        // Jane is a real member but not a telephone responder.
-        $members = [new ResponderStub(id: 2, telephoneResponder: false, anonymousName: 'Jane S')];
-
-        $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | Jane S'];
-
-        $this->makeValidator($members)->validate();
-
-        self::assertSame(
-            'acf[' . self::MON_KEY . ']',
-            $captured['field'],
-            'The error ties to the offending day field, which is what blocks the save.'
-        );
-        self::assertStringContainsString('not a telephone responder', $captured['message']);
-    }
-
-    #[Test]
-    public function it_distinguishes_an_unknown_name_from_a_non_responder(): void
-    {
-        // A typo and a real-but-ineligible member need different advice.
-        $message = '';
-        expect('acf_add_validation_error')
-            ->once()
-            ->andReturnUsing(function (string $field, string $text) use (&$message): void {
-                $message = $text;
-            });
-
-        $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning | Jhon D'];
-
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertStringContainsString('No member is named', $message);
-        self::assertStringContainsString('Check the spelling', $message);
-    }
-
-    #[Test]
-    public function it_reports_a_missing_shift_name_once_per_day(): void
-    {
-        // Three nameless lines, one message: the save is blocked without
-        // burying the operator in repeats.
-        $messages = [];
-        expect('acf_add_validation_error')
-            ->once()
-            ->andReturnUsing(function (string $field, string $text) use (&$messages): void {
-                $messages[] = $text;
-            });
-
-        $_POST['acf'] = [self::MON_KEY => "09:00-10:00\n10:00-11:00\n11:00-12:00"];
-
-        $this->makeValidator()->validate();
-
-        self::assertCount(1, $messages);
-        self::assertStringContainsString('Every shift needs a name', $messages[0]);
-    }
-
-    #[Test]
-    public function it_matches_names_case_insensitively(): void
-    {
-        expect('acf_add_validation_error')->never();
-
-        $_POST['acf'] = [
-            self::MON_KEY => "09:00-10:00 | A | John D\n10:00-11:00 | B | john d\n11:00-12:00 | C | JOHN D",
-        ];
-
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertTrue(true, 'One responder satisfies the same name in three casings.');
-    }
-
-    #[Test]
-    public function it_matches_names_with_surrounding_whitespace(): void
-    {
-        expect('acf_add_validation_error')->never();
-
-        $_POST['acf'] = [self::MON_KEY => '09:00-17:00 | Morning |    John D   '];
-
-        $this->makeValidator([new ResponderStub(anonymousName: 'John D')])->validate();
-
-        self::assertTrue(true, 'Names are trimmed before matching.');
-    }
-
-    #[Test]
-    public function it_validates_every_day_field_that_was_submitted(): void
-    {
-        $fields = [];
-        expect('acf_add_validation_error')
-            ->twice()
-            ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
-                $fields[] = $field;
-            });
-
-        $_POST['acf'] = [
-            TemplateFields::fieldKey('trusted_shifts_mon') => '09:00-17:00 | Morning | Ghost',
-            TemplateFields::fieldKey('trusted_shifts_wed') => '09:00-17:00 | Midweek | Ghost',
-        ];
-
-        $this->makeValidator()->validate();
-
-        self::assertCount(2, $fields, 'Each submitted day is validated independently.');
-        self::assertNotSame($fields[0], $fields[1], 'Errors land on their own day fields.');
-    }
-
-    #[Test]
-    public function it_leaves_unsubmitted_days_alone(): void
-    {
-        // Only Monday was submitted; the other six day fields must not be
-        // invented or reported on.
-        $fields = [];
-        expect('acf_add_validation_error')
-            ->once()
-            ->andReturnUsing(function (string $field, string $text) use (&$fields): void {
-                $fields[] = $field;
-            });
-
-        $_POST['acf'] = [TemplateFields::fieldKey('trusted_shifts_mon') => '09:00-17:00 | Morning | Ghost'];
-
-        $this->makeValidator()->validate();
-
-        self::assertCount(1, $fields);
-    }
-
-    /**
-     * ResponderDirectory is final, so it is driven for real through a fake
-     * repository rather than mocked. That exercises its actual name matching
-     * — trimmed, case-insensitive, first match wins — instead of a stubbed
-     * approximation of it.
-     *
-     * @param UnityMember[] $members
-     */
-    private function makeValidator(array $members = []): TemplateValidator
-    {
-        return new TemplateValidator(
-            new ResponderDirectory(new InMemoryMemberRepository($members)),
-            new TemplateParser(),
-        );
-    }
+    return new TemplateValidator(
+        new ResponderDirectory(new InMemoryMemberRepository($members)),
+        new TemplateParser(),
+    );
 }
+
+/**
+ * Expects acf_add_validation_error() the given number of times and records
+ * each call's field and message.
+ *
+ * @return \ArrayObject<int, array{field: string, message: string}>
+ */
+function captureValidationErrors(int $times): \ArrayObject
+{
+    $errors = new \ArrayObject();
+    Functions\expect('acf_add_validation_error')
+        ->times($times)
+        ->andReturnUsing(static function (string $field, string $message) use ($errors): void {
+            $errors[] = ['field' => $field, 'message' => $message];
+        });
+
+    return $errors;
+}
+
+beforeEach(function () {
+    $_POST = [];
+});
+
+afterEach(function () {
+    $_POST = [];
+});
+
+it('does nothing when ACF is not present', function () {
+    // validate() returns early unless acf_add_validation_error exists, so a
+    // non-ACF request cannot blow up. No expectation is registered for it,
+    // so any call would fail this test.
+    $_POST['acf'] = [MON_KEY => '09:00-17:00 | Morning | John D'];
+
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+})->throwsNoExceptions();
+
+it('ignores forms that are not ours', function () {
+    Functions\expect('acf_add_validation_error')->never();
+
+    // No acf payload at all — some other form is saving.
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+});
+
+it('accepts a template naming a telephone responder', function () {
+    Functions\expect('acf_add_validation_error')->never();
+
+    $_POST['acf'] = [MON_KEY => '09:00-17:00 | Morning | John D'];
+
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+});
+
+it('blocks a save naming a member who is not a responder', function () {
+    $errors = captureValidationErrors(1);
+
+    // Jane is a real member but not a telephone responder.
+    $_POST['acf'] = [MON_KEY => '09:00-17:00 | Morning | Jane S'];
+
+    templateValidator([new ResponderStub(id: 2, telephoneResponder: false, anonymousName: 'Jane S')])->validate();
+
+    expect($errors[0]['field'])->toBe(
+        'acf[' . MON_KEY . ']',
+        'The error ties to the offending day field, which is what blocks the save.'
+    )->and($errors[0]['message'])->toContain('not a telephone responder');
+});
+
+it('distinguishes an unknown name from a non-responder', function () {
+    // A typo and a real-but-ineligible member need different advice.
+    $errors = captureValidationErrors(1);
+
+    $_POST['acf'] = [MON_KEY => '09:00-17:00 | Morning | Jhon D'];
+
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+
+    expect($errors[0]['message'])->toContain('No member is named', 'Check the spelling');
+});
+
+it('reports a missing shift name once per day', function () {
+    // Three nameless lines, one message: the save is blocked without
+    // burying the operator in repeats.
+    $errors = captureValidationErrors(1);
+
+    $_POST['acf'] = [MON_KEY => "09:00-10:00\n10:00-11:00\n11:00-12:00"];
+
+    templateValidator()->validate();
+
+    expect($errors)->toHaveCount(1)
+        ->and($errors[0]['message'])->toContain('Every shift needs a name');
+});
+
+it('matches names case-insensitively', function () {
+    // One responder satisfies the same name in three casings.
+    Functions\expect('acf_add_validation_error')->never();
+
+    $_POST['acf'] = [
+        MON_KEY => "09:00-10:00 | A | John D\n10:00-11:00 | B | john d\n11:00-12:00 | C | JOHN D",
+    ];
+
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+});
+
+it('matches names with surrounding whitespace', function () {
+    // Names are trimmed before matching.
+    Functions\expect('acf_add_validation_error')->never();
+
+    $_POST['acf'] = [MON_KEY => '09:00-17:00 | Morning |    John D   '];
+
+    templateValidator([new ResponderStub(anonymousName: 'John D')])->validate();
+});
+
+it('validates every day field that was submitted', function () {
+    $errors = captureValidationErrors(2);
+
+    $_POST['acf'] = [
+        TemplateFields::fieldKey('trusted_shifts_mon') => '09:00-17:00 | Morning | Ghost',
+        TemplateFields::fieldKey('trusted_shifts_wed') => '09:00-17:00 | Midweek | Ghost',
+    ];
+
+    templateValidator()->validate();
+
+    expect($errors)->toHaveCount(2, 'Each submitted day is validated independently.')
+        ->and($errors[0]['field'])->not->toBe($errors[1]['field'], 'Errors land on their own day fields.');
+});
+
+it('leaves unsubmitted days alone', function () {
+    // Only Monday was submitted; the other six day fields must not be
+    // invented or reported on.
+    $errors = captureValidationErrors(1);
+
+    $_POST['acf'] = [TemplateFields::fieldKey('trusted_shifts_mon') => '09:00-17:00 | Morning | Ghost'];
+
+    templateValidator()->validate();
+
+    expect($errors)->toHaveCount(1);
+});

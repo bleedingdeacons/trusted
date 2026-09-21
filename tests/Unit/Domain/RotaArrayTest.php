@@ -4,55 +4,50 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Domain;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use Trusted\Domain\Assignment;
 use Trusted\Domain\Rota;
-use Trusted\Tests\TestCase;
 
-/**
+/*
  * Covers Rota's assignment accessors and array/JSON serialisation.
  */
-#[CoversClass(\Trusted\Domain\Rota::class)]
-final class RotaArrayTest extends TestCase
+
+covers(Rota::class);
+
+function morningRota(): Rota
 {
-    private function rota(): Rota
-    {
-        return new Rota(
-            id: 5,
-            slotDate: '2026-07-20',
-            startTime: '09:00',
-            endTime: '12:00',
-            label: 'Morning',
-            templateId: 3,
-        );
-    }
-
-    public function testWithAssignmentsAndAccessors(): void
-    {
-        $assignment = new Assignment(id: 1, rotaId: 5, memberId: '7', notes: 'n');
-        $rota = $this->rota()->withAssignments([$assignment]);
-
-        self::assertSame(3, $rota->templateId());
-        self::assertCount(1, $rota->assignments());
-        self::assertSame($assignment, $rota->assignments()[0]);
-    }
-
-    public function testToArrayIncludesAssignments(): void
-    {
-        $assignment = new Assignment(id: 1, rotaId: 5, memberId: '7', notes: 'n');
-        $array = $this->rota()->withAssignments([$assignment])->toArray();
-
-        self::assertSame(5, $array['id']);
-        self::assertSame('2026-07-20', $array['date']);
-        self::assertSame('09:00', $array['start']);
-        self::assertSame('Morning', $array['label']);
-        self::assertSame(3, $array['template_id']);
-        self::assertCount(1, $array['assignments']);
-    }
-
-    public function testJsonSerializeMatchesToArray(): void
-    {
-        $rota = $this->rota();
-        self::assertSame($rota->toArray(), $rota->jsonSerialize());
-    }
+    return new Rota(
+        id: 5,
+        slotDate: '2026-07-20',
+        startTime: '09:00',
+        endTime: '12:00',
+        label: 'Morning',
+        templateId: 3,
+    );
 }
+
+it('exposes its template id and assignments', function () {
+    $assignment = new Assignment(id: 1, rotaId: 5, memberId: '7', notes: 'n');
+    $rota = morningRota()->withAssignments([$assignment]);
+
+    expect($rota->templateId())->toBe(3)
+        ->and($rota->assignments())->toHaveCount(1)
+        ->and($rota->assignments()[0])->toBe($assignment);
+});
+
+it('includes its assignments in toArray', function () {
+    $assignment = new Assignment(id: 1, rotaId: 5, memberId: '7', notes: 'n');
+    $array = morningRota()->withAssignments([$assignment])->toArray();
+
+    expect($array['id'])->toBe(5)
+        ->and($array['date'])->toBe('2026-07-20')
+        ->and($array['start'])->toBe('09:00')
+        ->and($array['label'])->toBe('Morning')
+        ->and($array['template_id'])->toBe(3)
+        ->and($array['assignments'])->toHaveCount(1);
+});
+
+it('serialises to JSON exactly as toArray', function () {
+    $rota = morningRota();
+
+    expect($rota->jsonSerialize())->toBe($rota->toArray());
+});

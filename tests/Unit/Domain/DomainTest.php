@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Unit\Domain;
 
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Trusted\Domain\Assignment;
 use Trusted\Domain\Member;
 use Trusted\Domain\Rota;
@@ -13,84 +11,75 @@ use Trusted\Domain\Shift;
 use Trusted\Support\MemberPresenter;
 use Trusted\Tests\Fixtures\ResponderStub;
 
-/**
+/*
  * Tests for the value objects and the Unity-to-Trusted member mapping.
  *
  * These objects are serialised straight onto the REST boundary, so their
  * array shape is a contract with the calendar UI, not an implementation
  * detail.
  */
-final class DomainTest extends TestCase
-{
-    #[Test]
-    public function shift_exposes_its_parts_and_serialises_to_the_ui_shape(): void
-    {
+
+describe('Shift', function () {
+    it('exposes its parts and serialises to the UI shape', function () {
         $shift = new Shift('09:00', '17:00', 'Day shift', 'John D');
 
-        self::assertSame('09:00', $shift->startTime());
-        self::assertSame('John D', $shift->member());
-        self::assertSame(
-            ['start' => '09:00', 'end' => '17:00', 'label' => 'Day shift', 'member' => 'John D'],
-            $shift->toArray()
-        );
-        self::assertSame($shift->toArray(), $shift->jsonSerialize());
-    }
+        expect($shift->startTime())->toBe('09:00')
+            ->and($shift->member())->toBe('John D')
+            ->and($shift->toArray())->toBe(['start' => '09:00', 'end' => '17:00', 'label' => 'Day shift', 'member' => 'John D'])
+            ->and($shift->jsonSerialize())->toBe($shift->toArray());
+    });
 
-    #[Test]
-    public function shift_defaults_its_optional_parts_to_empty_strings(): void
-    {
+    it('defaults its optional parts to empty strings', function () {
         $shift = new Shift('09:00', '17:00');
 
-        self::assertSame('', $shift->label());
-        self::assertSame('', $shift->member(), 'Empty means no member to pre-assign, not null.');
-    }
+        expect($shift->label())->toBe('')
+            ->and($shift->member())->toBe('', 'Empty means no member to pre-assign, not null.');
+    });
+});
 
-    #[Test]
-    public function rota_with_id_returns_a_new_instance_and_leaves_the_original_alone(): void
-    {
+describe('Rota', function () {
+    it('returns a new instance from withId and leaves the original alone', function () {
         $rota = new Rota(null, '2026-07-20', '09:00', '17:00', 'Day shift');
         $saved = $rota->withId(12);
 
-        self::assertNull($rota->id(), 'The original is untouched.');
-        self::assertSame(12, $saved->id());
-        self::assertNotSame($rota, $saved);
-        self::assertSame('Day shift', $saved->label(), 'Everything else carries over.');
-    }
+        expect($rota->id())->toBeNull('The original is untouched.')
+            ->and($saved->id())->toBe(12)
+            ->and($saved)->not->toBe($rota)
+            ->and($saved->label())->toBe('Day shift', 'Everything else carries over.');
+    });
 
-    #[Test]
-    public function rota_with_assignments_returns_a_new_instance(): void
-    {
+    it('returns a new instance from withAssignments', function () {
         $rota = new Rota(1, '2026-07-20', '09:00', '17:00');
         $filled = $rota->withAssignments([new Assignment(1, 1, '99')]);
 
-        self::assertSame([], $rota->assignments());
-        self::assertCount(1, $filled->assignments());
-    }
+        expect($rota->assignments())->toBe([])
+            ->and($filled->assignments())->toHaveCount(1);
+    });
+});
 
-    #[Test]
-    public function assignment_with_member_attaches_without_mutating(): void
-    {
+describe('Assignment', function () {
+    it('attaches a member without mutating', function () {
         $assignment = new Assignment(1, 12, '99');
         $withMember = $assignment->withMember(new Member('99', 'Jane S', 'jane@example.test', '07700 900999'));
 
-        self::assertNull($assignment->member());
-        self::assertNotNull($withMember->member());
-        self::assertSame('Jane S', $withMember->member()?->name());
-    }
+        expect($assignment->member())->toBeNull()
+            ->and($withMember->member())->not->toBeNull()
+            ->and($withMember->member()?->name())->toBe('Jane S');
+    });
+});
 
-    #[Test]
-    public function member_serialises_every_field(): void
-    {
+describe('Member', function () {
+    it('serialises every field', function () {
         $member = new Member('99', 'Jane S', 'jane@example.test', '07700 900999');
 
-        self::assertSame('99', $member->id());
-        self::assertSame($member->toArray(), $member->jsonSerialize());
-        self::assertSame('jane@example.test', $member->toArray()['email']);
-    }
+        expect($member->id())->toBe('99')
+            ->and($member->jsonSerialize())->toBe($member->toArray())
+            ->and($member->toArray()['email'])->toBe('jane@example.test');
+    });
+});
 
-    #[Test]
-    public function presenter_maps_unity_fields_onto_trusted_ones(): void
-    {
+describe('MemberPresenter', function () {
+    it('maps Unity fields onto Trusted ones', function () {
         // The single mapping point between Unity's domain and Trusted's REST
         // boundary: anonymous name -> name, personal email -> email,
         // mobile number -> telephone.
@@ -101,9 +90,9 @@ final class DomainTest extends TestCase
             mobileNumber: '07700 900123',
         ));
 
-        self::assertSame('42', $member->id(), 'Unity ids are ints; Trusted keys members by string.');
-        self::assertSame('John D', $member->name());
-        self::assertSame('john@example.test', $member->email());
-        self::assertSame('07700 900123', $member->telephone());
-    }
-}
+        expect($member->id())->toBe('42', 'Unity ids are ints; Trusted keys members by string.')
+            ->and($member->name())->toBe('John D')
+            ->and($member->email())->toBe('john@example.test')
+            ->and($member->telephone())->toBe('07700 900123');
+    });
+});
