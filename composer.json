@@ -5,6 +5,7 @@
     "license": "MIT (Modified)",
     "require": {
         "php": ">=8.4",
+        "bleedingdeacons/beacon": "^3.0",
         "psr/container": "^1.1 || ^2.0"
     },
     "autoload": {
@@ -34,6 +35,10 @@
         "build:clean": "php build.php clean"
     },
     "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/bleedingdeacons/beacon"
+        },
         {
             "type": "vcs",
             "url": "https://github.com/bleedingdeacons/wp-mocks"
