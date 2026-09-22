@@ -42,11 +42,6 @@ parameters:
         # Unity is not a composer dependency, so without this PHPStan cannot
         # resolve a single one of them. CI checks it out alongside.
         - ../unity/src
-        # Beacon is optional at runtime — forwardingService() returns null
-        # when its container has no driver bound — but CallForwardingService
-        # appears in a return type, so it has to resolve. The plugin header
-        # declares "Requires Plugins: scrutiny, beacon".
-        - ../beacon/src
     ignoreErrors:
         # The get_plugin_data and dbDelta entries were removed from here once
         # wordpress-stubs resolved them and they stopped matching.

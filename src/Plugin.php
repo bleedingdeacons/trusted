@@ -18,8 +18,8 @@ use Trusted\Http\SignupController;
 use Trusted\Template\TemplateFields;
 use Trusted\Template\TemplatePostType;
 use Trusted\Template\TemplateValidator;
+use Beacon\Forwarding\ForwardingRegistry;
 use Beacon\Forwarding\Interfaces\CallForwardingService;
-use Psr\Container\ContainerInterface as BeaconContainer;
 use Unity\Core\Interfaces\Container;
 
 /**
@@ -36,13 +36,6 @@ final class Plugin
     private static ?Plugin $instance = null;
 
     private ?Container $container = null;
-
-    /**
-     * Beacon's PSR-11 container, captured on `beacon/loaded`. Beacon's
-     * forwarding API is private (in-process only), so this handle is how
-     * Trusted reaches it — never over HTTP. Null until Beacon boots.
-     */
-    private ?BeaconContainer $beaconContainer = null;
 
     public static function instance(): self
     {
@@ -105,22 +98,12 @@ final class Plugin
     }
 
     /**
-     * Adopt Beacon's container. Called on `beacon/loaded` (see
-     * trusted.php) with the PSR-11 container Beacon passes to consumers.
-     */
-    public function useBeaconContainer(BeaconContainer $container): void
-    {
-        $this->beaconContainer = $container;
-    }
-
-    /**
      * The active call-forwarding service, or null when no Beacon driver
      * (e.g. Tamar) is bound.
      *
-     * Resolved lazily — and re-checked on every call — so the result
-     * reflects driver state at the moment Trusted needs it, not plugin
-     * load order. Drivers bind `CallForwardingService` on `beacon/loaded`
-     * too, so an eager resolve here could race ahead of them.
+     * Resolved through the Beacon library's registry on every call, so
+     * the result reflects driver state at the moment Trusted needs it,
+     * not plugin load order. Tamar binds on `plugins_loaded`.
      *
      * Callers must enforce their own capability check (e.g.
      * `beacon_manage_forwarding`) before mutating forwarding — the
@@ -128,13 +111,6 @@ final class Plugin
      */
     public function forwardingService(): ?CallForwardingService
     {
-        if (
-            $this->beaconContainer === null
-            || ! $this->beaconContainer->has(CallForwardingService::class)
-        ) {
-            return null;
-        }
-
-        return $this->beaconContainer->get(CallForwardingService::class);
+        return ForwardingRegistry::get();
     }
 }

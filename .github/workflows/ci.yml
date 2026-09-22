@@ -37,7 +37,7 @@ jobs:
 
     defaults:
       run:
-        # Trusted is checked out alongside Unity and Beacon, mirroring a
+        # Trusted is checked out alongside Unity, mirroring a
         # WordPress plugins/ directory, so run everything from inside Trusted.
         working-directory: trusted
 
@@ -56,15 +56,6 @@ jobs:
           repository: bleedingdeacons/unity
           ref: main
           path: unity
-
-      - name: Checkout Beacon
-        # Optional at runtime, but CallForwardingService appears in a return
-        # type, so it has to resolve.
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: bleedingdeacons/beacon
-          ref: main
-          path: beacon
 
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
@@ -341,13 +332,6 @@ jobs:
           repository: bleedingdeacons/unity
           ref: main
           path: unity
-
-      - name: Checkout Beacon
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: bleedingdeacons/beacon
-          ref: main
-          path: beacon
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
