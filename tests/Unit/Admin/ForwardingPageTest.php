@@ -83,6 +83,21 @@ describe('registerMenu', function () {
 
         expect(WpState::$menus[0]['cap'])->toBe('edit_trusted_rota');
     });
+
+    // The week toolbar is styled by the calendar's stylesheet, loaded only
+    // when this screen is, on the hook WordPress returned for it.
+    it('loads the calendar stylesheet on its own screen only', function () {
+        $this->page->registerMenu();
+
+        expect(has_action('load-' . CalendarPage::SLUG . '_page_' . ForwardingPage::SLUG, [$this->page, 'enqueueStyles']))
+            ->not->toBeFalse();
+    });
+
+    it('enqueues the same stylesheet handle as the calendar', function () {
+        $this->page->enqueueStyles();
+
+        expect(WpState::$enqueued)->toBe([['fn' => 'wp_enqueue_style', 'handle' => 'trusted-calendar']]);
+    });
 });
 
 describe('guard', function () {
@@ -98,14 +113,14 @@ describe('choosing the week', function () {
     it('shows the current week by default', function () {
         ($this->weekOf)('2026-07-20', []);
 
-        expect(($this->render)())->toContain('20 Jul 2026 – 26 Jul 2026', 'value="2026-07-20"');
+        expect(($this->render)())->toContain('<strong class="trusted-week-label">2026-07-20 – 2026-07-26</strong>');
     });
 
     it('shows the week containing any date asked for', function () {
         $_GET = ['week' => '2026-09-24'];
         ($this->weekOf)('2026-09-21', []);
 
-        expect(($this->render)())->toContain('21 Sep 2026 – 27 Sep 2026');
+        expect(($this->render)())->toContain('2026-09-21 – 2026-09-27');
     });
 
     it('falls back to the current week for something that is not a date', function (string $week) {
@@ -115,10 +130,20 @@ describe('choosing the week', function () {
         ($this->render)();
     })->with(['nonsense' => ['next tuesday'], 'impossible' => ['2026-02-30']]);
 
-    it('links to the weeks either side', function () {
-        ($this->weekOf)('2026-07-20', []);
+    // The same toolbar, classes and wording as the Rota Calendar.
+    it('offers the calendar Previous / This week / Next navigation', function () {
+        $_GET = ['week' => '2026-09-24'];
+        ($this->weekOf)('2026-09-21', []);
 
-        expect(($this->render)())->toContain('week=2026-07-13', 'week=2026-07-27');
+        $html = ($this->render)();
+
+        expect($html)->toContain(
+            '<div class="trusted-toolbar"><div class="trusted-nav">',
+            '<div class="trusted-week-buttons">',
+            'week=2026-09-14">← Previous</a>',
+            'page=trusted-forwarding">This week</a>',
+            'week=2026-09-28">Next →</a>',
+        )->and($html)->not->toContain('type="date"');
     });
 });
 

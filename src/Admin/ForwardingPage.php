@@ -21,6 +21,10 @@ use Unity\Core\Interfaces\Container;
  * whether or not Tamar is active, and nothing on it sends anything upstream.
  * The week is chosen with `?week=` (any date in it); anything that is not a
  * real date falls back to the current week rather than erroring.
+ *
+ * Its week navigation is the Rota Calendar's: the same toolbar, label and
+ * Previous / This week / Next buttons, styled by the calendar's own
+ * stylesheet rather than a copy of it, so the two screens cannot drift apart.
  */
 final class ForwardingPage
 {
@@ -37,13 +41,35 @@ final class ForwardingPage
 
     public function registerMenu(): void
     {
-        add_submenu_page(
+        $hook = add_submenu_page(
             CalendarPage::SLUG,
             __('Forwarding Preview', 'trusted'),
             __('Forwarding', 'trusted'),
             $this->capability(),
             self::SLUG,
             [$this, 'render']
+        );
+
+        // `load-{hook}` fires only when this screen is being loaded, early
+        // enough for the stylesheet to go in the head. Keyed on the hook
+        // WordPress returned rather than a spelled-out one, which would be
+        // derived from the parent menu's (translatable) title.
+        if (is_string($hook) && $hook !== '') {
+            add_action('load-' . $hook, [$this, 'enqueueStyles']);
+        }
+    }
+
+    /**
+     * The Rota Calendar's stylesheet, for its week navigation toolbar. Same
+     * handle as Assets uses, so it is never loaded twice.
+     */
+    public function enqueueStyles(): void
+    {
+        wp_enqueue_style(
+            'trusted-calendar',
+            \TRUSTED_URL . 'assets/css/calendar.css',
+            [],
+            \TRUSTED_VERSION
         );
     }
 
@@ -72,37 +98,41 @@ final class ForwardingPage
         echo '</div>';
     }
 
+    /**
+     * The Rota Calendar's week toolbar: the week label above Previous /
+     * This week / Next, with the same wording and classes calendar.js uses.
+     * Links rather than buttons, since this page is drawn on the server.
+     */
     private function renderWeekNav(string $week): void
     {
         $monday = new \DateTimeImmutable($week);
-        $sunday = $monday->modify('+6 days');
 
-        echo '<form method="get" class="trusted-forwarding-nav" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:1em 0 1.5em;">';
-        echo '<input type="hidden" name="page" value="' . esc_attr(self::SLUG) . '" />';
-
+        echo '<div class="trusted-toolbar">';
+        echo '<div class="trusted-nav">';
+        echo '<strong class="trusted-week-label">'
+            . esc_html($week . ' – ' . $monday->modify('+6 days')->format('Y-m-d')) . '</strong>';
+        echo '<div class="trusted-week-buttons">';
         echo '<a class="button" href="' . esc_url($this->weekUrl($monday->modify('-7 days')->format('Y-m-d'))) . '">'
-            . '&larr; ' . esc_html__('Previous week', 'trusted') . '</a>';
-
-        echo '<strong style="padding:0 4px;">' . esc_html(sprintf(
-            /* translators: 1: Monday of the week, 2: Sunday of the week */
-            __('%1$s – %2$s', 'trusted'),
-            $monday->format('j M Y'),
-            $sunday->format('j M Y')
-        )) . '</strong>';
-
+            . esc_html__('← Previous', 'trusted') . '</a>';
+        echo '<a class="button" href="' . esc_url($this->weekUrl(null)) . '">'
+            . esc_html__('This week', 'trusted') . '</a>';
         echo '<a class="button" href="' . esc_url($this->weekUrl($monday->modify('+7 days')->format('Y-m-d'))) . '">'
-            . esc_html__('Next week', 'trusted') . ' &rarr;</a>';
-
-        echo '<label for="trusted-forwarding-week" class="screen-reader-text">' . esc_html__('Week (any day in the week)', 'trusted') . '</label>';
-        echo '<input type="date" lang="en-GB" id="trusted-forwarding-week" name="week" value="' . esc_attr($week) . '" />';
-        echo '<button type="submit" class="button">' . esc_html__('Show week', 'trusted') . '</button>';
-
-        echo '</form>';
+            . esc_html__('Next →', 'trusted') . '</a>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
     }
 
-    private function weekUrl(string $week): string
+    /** The page for a week, or for the current week when $week is null. */
+    private function weekUrl(?string $week): string
     {
-        return add_query_arg(['page' => self::SLUG, 'week' => $week], admin_url('admin.php'));
+        $args = ['page' => self::SLUG];
+
+        if ($week !== null) {
+            $args['week'] = $week;
+        }
+
+        return add_query_arg($args, admin_url('admin.php'));
     }
 
     /**
