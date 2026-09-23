@@ -21,8 +21,8 @@ use Trusted\Domain\ShiftTime;
  * hunt-group editor holds:
  *
  *   - `days` is the single weekday code the window falls on;
- *   - `from`/`to` lie within 00:00–23:59, the forwarding system's day — the
- *     end of the day is 23:59, which is also how Trusted stores it;
+ *   - `from`/`to` lie within 00:00–23:59, the forwarding system's day — a
+ *     24:00 end is always written as 23:59;
  *   - a filled shift forwards to the responder's telephone, labelled with
  *     their anonymous name. The target id is `num:` plus the number's digits,
  *     which is how Tamar's parser identifies a number, so the same responder
@@ -159,12 +159,17 @@ final class RotaForwardingProjection
      * The time windows a slot forwards in, as [day, from, to] triples, each
      * within 00:00–23:59.
      *
+     * 24:00 is always 23:59 here. The factory already stores it that way, but
+     * a forward is built from whatever Rota it is handed, and the forwarding
+     * system has no 24:00 — so the conversion is made here too rather than
+     * trusted to have happened upstream.
+     *
      * @return list<array{string, string, string}>
      */
     private function windows(Rota $slot, string $day): array
     {
         $start = $slot->startTime();
-        $end   = $slot->endTime();
+        $end   = ShiftTime::toStored($slot->endTime());
 
         if (ShiftTime::endMinutes($end) > ShiftTime::minutes($start)) {
             return [[$day, $start, $end]];
