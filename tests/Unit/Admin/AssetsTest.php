@@ -133,7 +133,7 @@ describe('the localised payload', function () {
         $i18n = localizedData()['i18n'];
 
         expect(array_keys($i18n))->toBe([
-            'assign', 'selectMember', 'addShift', 'applyTemplate', 'selectTemplate',
+            'assign', 'selectMember', 'select', 'addShift', 'applyTemplate', 'selectTemplate',
             'replace', 'prevWeek', 'nextWeek', 'today', 'remove', 'confirmRemove',
             'bulkAssign', 'bulkHint', 'oneSelected', 'manySelected', 'bulkSkipped',
             'noTemplates', 'unassigned', 'gap', 'gapAddHint', 'gapLocked', 'saveAsTemplate',
