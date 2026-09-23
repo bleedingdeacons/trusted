@@ -824,9 +824,11 @@
         var wrap = el('div', { class: 'trusted-assign' });
         var picker = null;
 
+        // Opens the member picker, so it says Select; Assign is the picker's
+        // own confirm button.
         var openBtn = el('button', {
             class: 'button trusted-assign-btn',
-            text: i18n.assign || 'Assign'
+            text: i18n.select || 'Select'
         });
 
         function close() {
@@ -847,9 +849,12 @@
                 select.appendChild(el('option', { value: m.id, text: m.name }));
             });
 
+            // Disabled until a real member is chosen — the "Select Member"
+            // placeholder has an empty value, so there is nothing to assign.
             var addBtn = el('button', {
                 class: 'button button-primary trusted-assign-confirm',
                 text: i18n.assign || 'Assign',
+                disabled: 'disabled',
                 onclick: function () {
                     var id = select.value;
                     if (!id) { return; }
@@ -861,10 +866,14 @@
                             onAssigned(res.created || []);
                         })
                         .catch(function (e) {
-                            addBtn.disabled = false;
+                            addBtn.disabled = !select.value;
                             window.alert(e.message);
                         });
                 }
+            });
+
+            select.addEventListener('change', function () {
+                addBtn.disabled = !select.value;
             });
 
             var cancelBtn = el('button', {

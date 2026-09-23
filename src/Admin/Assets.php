@@ -43,6 +43,7 @@ final class Assets
             'i18n'      => [
                 'assign'        => __('Assign', 'trusted'),
                 'selectMember'  => __('Select Member', 'trusted'),
+                'select'        => __('Select', 'trusted'),
                 'addShift'      => __('Add Shift', 'trusted'),
                 'applyTemplate' => __('Apply template', 'trusted'),
                 'selectTemplate' => __('Select Template', 'trusted'),
