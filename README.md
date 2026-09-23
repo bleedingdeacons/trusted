@@ -74,6 +74,26 @@ A 7-day telephone shift **rota manager** for WordPress.
    same member can be assigned to other shifts and other days. Add ad-hoc slots
    per day with **+ Add shift**.
 
+### Forwarding preview
+
+**Telephone → Forwarding** shows a week of the rota as the call-forwarding hunt
+group it would make, laid out like Tamar's forwarding overview: each day's
+forwarding steps in time order, Monday first, then the numbers they forward to.
+
+- Each assigned shift is one step on its weekday, forwarding to the
+  responder's telephone. Steps are numbered through the week, earliest first,
+  which is the order a hunt-in-order group rings overlapping windows.
+- An overnight shift is two steps — to 24:00 on its own day, then from 00:00
+  on the next. A Sunday night shift carries on into Monday, because a hunt
+  group repeats weekly.
+- A shift that would forward nowhere — unassigned, assigned to a member Unity
+  no longer has, or to one with no telephone — is shown in place as a warning.
+
+It is a preview only. It works whether or not Tamar is active, and nothing on
+it is sent upstream. The rules are built as Beacon `ForwardingRule` and
+`ForwardingTarget` models (`Trusted\Forwarding\RotaForwardingProjection`), in
+the shape Tamar's driver reads and writes.
+
 ### Developer Tools
 
 **Trusted → Developer** is a maintenance page for admins, with two destructive
@@ -107,7 +127,8 @@ src/
   Repository/     RotaRepository, AssignmentRepository   (wpdb / custom tables)
   Template/       TemplatePostType, TemplateFields (ACF), TemplateApplicator
   Http/           RestController   (trusted/v1 REST namespace)
-  Admin/          CalendarPage, DeveloperPage, Assets
+  Forwarding/     RotaForwardingProjection  (a week of the rota as Beacon forwarding rules)
+  Admin/          CalendarPage, ForwardingPage, DeveloperPage, Assets
   Support/        Database (tables + dbDelta), MemberPresenter (Unity → Trusted Member)
   Plugin.php      Boots on unity/loaded; wires WordPress hooks
 ```

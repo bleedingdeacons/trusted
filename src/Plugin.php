@@ -12,6 +12,7 @@ if (! defined('ABSPATH')) {
 use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
 use Trusted\Admin\DeveloperPage;
+use Trusted\Admin\ForwardingPage;
 use Trusted\Admin\HelpPage;
 use Trusted\Http\RestController;
 use Trusted\Http\SignupController;
@@ -74,6 +75,10 @@ final class Plugin
 
         add_action('admin_menu', [new CalendarPage(), 'registerMenu']);
         add_action('admin_enqueue_scripts', [new Assets(), 'enqueue']);
+
+        // The rota as a call-forwarding hunt group, laid out like Tamar's
+        // overview. Read-only; works whether or not Tamar is active.
+        add_action('admin_menu', [new ForwardingPage($container), 'registerMenu']);
 
         $developerPage = new DeveloperPage($container);
         add_action('admin_menu', [$developerPage, 'registerMenu']);
