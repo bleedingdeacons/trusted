@@ -11,7 +11,6 @@ if (! defined('ABSPATH')) {
 
 use Beacon\Forwarding\Models\ForwardingRule;
 use Beacon\Targets\Models\ForwardingTarget;
-use Trusted\Domain\ShiftTime;
 use Trusted\Forwarding\ForwardingSchedule;
 use Trusted\Forwarding\RotaForwardingProjection;
 
@@ -20,18 +19,21 @@ use Trusted\Forwarding\RotaForwardingProjection;
  *
  * Deliberately drawn like Tamar's forwarding overview (Tamar\Admin\
  * ForwardingOverview) — each day's forwarding steps in time order, the week
- * starting Monday, then the numbers they forward to — so a coordinator can
- * hold the two side by side and see what the rota would put into the hunt
- * group. The markup and styles are a copy rather than a dependency: Tamar is
- * optional, and this screen has to work without it.
+ * starting Monday, then the targets they forward to grouped by kind — so a
+ * coordinator can hold the two side by side and see what the rota would put
+ * into the hunt group. The markup and styles are a copy rather than a
+ * dependency: Tamar is optional, and this screen has to work without it.
  *
- * Where it departs from Tamar's view is the shifts that forward nowhere.
- * Tamar only knows about rows it has; the rota also knows about the shifts
- * that did not become a row — unassigned, or assigned to someone with no
- * number — and those are drawn in place as warnings, because a shift missing
- * from the hunt group is otherwise invisible.
+ * Where it departs from Tamar's view is the shifts that fall to voicemail.
+ * To Tamar a voicemail row is just a row; the rota knows why it is there —
+ * nobody assigned, or someone who cannot be reached — and those steps are
+ * drawn as warnings with the reason, because an unfilled shift is the thing a
+ * coordinator most needs to see.
  *
- * @phpstan-import-type SkippedShift from ForwardingSchedule
+ * Times are shown as the forwarding system holds them, 00:00–23:59, rather
+ * than with the 24:00 the calendar uses for the end of the day.
+ *
+ * @phpstan-import-type UnfilledShift from ForwardingSchedule
  */
 final class ForwardingPreview
 {
@@ -55,13 +57,13 @@ final class ForwardingPreview
 
         $this->renderSummary($schedule);
 
-        if ($schedule->rules === [] && $schedule->skipped === []) {
+        if ($schedule->rules === []) {
             echo '<p class="trusted-forwarding__empty">'
                 . esc_html__('No shifts on the rota this week — nothing would be forwarded.', 'trusted')
                 . '</p>';
         } else {
-            foreach ($this->groupByDay($schedule) as $day => $steps) {
-                $this->renderDay($day, $weekStart, $steps, $targetsById);
+            foreach ($this->groupByDay($schedule->rules) as $day => $rules) {
+                $this->renderDay($day, $weekStart, $rules, $targetsById, $schedule);
             }
         }
 
@@ -72,8 +74,8 @@ final class ForwardingPreview
 
     private function renderSummary(ForwardingSchedule $schedule): void
     {
-        $steps   = count($schedule->rules);
-        $skipped = count($schedule->skipped);
+        $steps     = count($schedule->rules);
+        $voicemail = count($schedule->unfilled);
 
         echo '<p class="trusted-forwarding__sub">'
             . esc_html(sprintf(
@@ -82,12 +84,12 @@ final class ForwardingPreview
                 $steps
             ));
 
-        if ($skipped > 0) {
+        if ($voicemail > 0) {
             echo ' · <span class="trusted-forwarding__warn">'
                 . esc_html(sprintf(
-                    /* translators: %d: number of shifts that forward nowhere */
-                    _n('%d shift not forwarded', '%d shifts not forwarded', $skipped, 'trusted'),
-                    $skipped
+                    /* translators: %d: number of steps forwarding to voicemail because their shift is unfilled */
+                    _n('%d unfilled, to voicemail', '%d unfilled, to voicemail', $voicemail, 'trusted'),
+                    $voicemail
                 ))
                 . '</span>';
         }
@@ -96,20 +98,21 @@ final class ForwardingPreview
     }
 
     /**
-     * Bucket rules and skipped shifts under their weekday, Monday first.
+     * Bucket rules under their weekday, Monday first.
      *
      * Every day is present even when empty, so a day with no cover shows as
-     * one. Within a day, entries sort by start time; usort is stable, so rules
-     * with the same start keep hunt order and come before a skipped shift.
+     * one. Within a day, rules sort by start time; usort is stable, so rules
+     * with the same start keep hunt order.
      *
-     * @return array<string, list<ForwardingRule|SkippedShift>>
+     * @param list<ForwardingRule> $rules In hunt order.
+     * @return array<string, list<ForwardingRule>>
      */
-    private function groupByDay(ForwardingSchedule $schedule): array
+    private function groupByDay(array $rules): array
     {
-        /** @var array<string, list<ForwardingRule|SkippedShift>> $groups */
+        /** @var array<string, list<ForwardingRule>> $groups */
         $groups = array_fill_keys(RotaForwardingProjection::DAYS, []);
 
-        foreach ($schedule->rules as $rule) {
+        foreach ($rules as $rule) {
             foreach ($this->windowDays($rule) as $day) {
                 if (isset($groups[$day])) {
                     $groups[$day][] = $rule;
@@ -117,99 +120,85 @@ final class ForwardingPreview
             }
         }
 
-        foreach ($schedule->skipped as $shift) {
-            if (isset($groups[$shift['day']])) {
-                $groups[$shift['day']][] = $shift;
-            }
-        }
-
-        foreach ($groups as $day => $steps) {
-            usort($steps, fn (ForwardingRule|array $a, ForwardingRule|array $b): int
-                => $this->startOf($a) <=> $this->startOf($b));
-            $groups[$day] = $steps;
+        foreach ($groups as $day => $dayRules) {
+            usort($dayRules, fn (ForwardingRule $a, ForwardingRule $b): int
+                => $this->windowFrom($a) <=> $this->windowFrom($b));
+            $groups[$day] = $dayRules;
         }
 
         return $groups;
     }
 
     /**
-     * @param list<ForwardingRule|SkippedShift>       $steps
-     * @param array<string, ForwardingTarget>         $targetsById
+     * @param list<ForwardingRule>            $rules
+     * @param array<string, ForwardingTarget> $targetsById
      */
-    private function renderDay(string $day, string $weekStart, array $steps, array $targetsById): void
-    {
+    private function renderDay(
+        string $day,
+        string $weekStart,
+        array $rules,
+        array $targetsById,
+        ForwardingSchedule $schedule,
+    ): void {
         echo '<section class="trusted-forwarding__day">';
         echo '<h3 class="trusted-forwarding__day-head">' . esc_html($this->dayHeading($day, $weekStart))
-            . ' <span>(' . count($steps) . ')</span></h3>';
+            . ' <span>(' . count($rules) . ')</span></h3>';
 
-        if ($steps === []) {
+        if ($rules === []) {
             echo '<p class="trusted-forwarding__day-empty">' . esc_html__('Nothing forwarded on this day.', 'trusted') . '</p>';
             echo '</section>';
             return;
         }
 
         echo '<ol class="trusted-flow">';
-        foreach ($steps as $step) {
-            if ($step instanceof ForwardingRule) {
-                $this->renderStep($step, $targetsById[$step->getTargetId()] ?? null);
-            } else {
-                $this->renderSkipped($step);
-            }
+        foreach ($rules as $rule) {
+            $this->renderStep($rule, $targetsById[$rule->getTargetId()] ?? null, $schedule->unfilledFor($rule));
         }
         echo '</ol>';
         echo '</section>';
     }
 
-    private function renderStep(ForwardingRule $rule, ?ForwardingTarget $target): void
+    /**
+     * @param UnfilledShift|null $unfilled Why the rule forwards to voicemail,
+     *                                     or null when it forwards to a person.
+     */
+    private function renderStep(ForwardingRule $rule, ?ForwardingTarget $target, ?array $unfilled): void
     {
         $label = $rule->getLabel() !== '' ? $rule->getLabel() : __('(unnamed rule)', 'trusted');
 
-        echo '<li class="trusted-step">';
+        echo '<li class="trusted-step' . ($unfilled !== null ? ' trusted-step--gap' : '') . '">';
         echo '<span class="trusted-step__time">' . esc_html($this->describeWindow($rule)) . '</span>';
         echo '<div class="trusted-step__body">';
 
         echo '<div class="trusted-step__head">';
         echo '<strong>' . esc_html($label) . '</strong>';
-        echo '<span class="trusted-badge trusted-badge--on">' . esc_html__('Active', 'trusted') . '</span>';
+        echo $unfilled !== null
+            ? '<span class="trusted-badge trusted-badge--warn">' . esc_html__('Unfilled', 'trusted') . '</span>'
+            : '<span class="trusted-badge trusted-badge--on">' . esc_html__('Active', 'trusted') . '</span>';
         echo '</div>';
 
         echo '<div class="trusted-step__dest"><span class="dashicons dashicons-arrow-right-alt2"></span> '
             . $this->describeTarget($rule->getTargetId(), $target)
             . '</div>';
 
-        echo '</div></li>';
-    }
-
-    /**
-     * @param SkippedShift $shift
-     */
-    private function renderSkipped(array $shift): void
-    {
-        $title = $shift['member'] !== ''
-            ? $shift['member']
-            : ($shift['label'] !== '' ? $shift['label'] : __('Open shift', 'trusted'));
-
-        echo '<li class="trusted-step trusted-step--gap">';
-        echo '<span class="trusted-step__time">' . esc_html($shift['start'] . '–' . $shift['end']) . '</span>';
-        echo '<div class="trusted-step__body">';
-
-        echo '<div class="trusted-step__head">';
-        echo '<strong>' . esc_html($title) . '</strong>';
-        echo '<span class="trusted-badge trusted-badge--warn">' . esc_html__('Not forwarded', 'trusted') . '</span>';
-        echo '</div>';
-
-        echo '<div class="trusted-step__when"><span class="dashicons dashicons-warning"></span> '
-            . esc_html($this->describeReason($shift['reason'])) . '</div>';
+        if ($unfilled !== null) {
+            echo '<div class="trusted-step__when"><span class="dashicons dashicons-warning"></span> '
+                . esc_html($this->describeReason($unfilled['reason'], $unfilled['member'])) . '</div>';
+        }
 
         echo '</div></li>';
     }
 
-    private function describeReason(string $reason): string
+    private function describeReason(string $reason, string $member): string
     {
         return match ($reason) {
             ForwardingSchedule::UNASSIGNED     => __('Nobody is assigned to this shift.', 'trusted'),
             ForwardingSchedule::MEMBER_MISSING => __('The assigned member can no longer be found in Unity.', 'trusted'),
-            ForwardingSchedule::NO_TELEPHONE   => __('The assigned member has no telephone number.', 'trusted'),
+            ForwardingSchedule::NO_TELEPHONE   => sprintf(
+                /* translators: %s: the assigned member's anonymous name */
+                __('%s is assigned but has no telephone number.', 'trusted'),
+                $member
+            ),
             default                            => $reason,
         };
     }
@@ -225,10 +214,11 @@ final class ForwardingPreview
                 . esc_html($targetId) . '</code></span>';
         }
 
+        $icon  = $target->getKind() === ForwardingTarget::KIND_VOICEMAIL ? 'dashicons-microphone' : 'dashicons-phone';
         $label = $target->getLabel() !== '' ? $target->getLabel() : $target->getId();
 
         $out = '<span class="trusted-target">';
-        $out .= '<span class="dashicons dashicons-phone"></span> ';
+        $out .= '<span class="dashicons ' . esc_attr($icon) . '"></span> ';
         $out .= '<strong>' . esc_html($label) . '</strong>';
         if ($target->getAddress() !== '') {
             $out .= ' <span class="trusted-target__addr">' . esc_html($target->getAddress()) . '</span>';
@@ -240,32 +230,20 @@ final class ForwardingPreview
     }
 
     /**
-     * A rule's time of day, e.g. "10:00–14:00", with the end of the day shown
-     * as 24:00 the way the rest of Trusted shows it.
+     * A rule's time of day as the forwarding system holds it, e.g.
+     * "10:00–14:00" or "18:00–23:59".
      */
     private function describeWindow(ForwardingRule $rule): string
     {
         $value = $this->windowValue($rule);
 
-        return sprintf(
-            '%s–%s',
-            (string) ($value['from'] ?? '00:00'),
-            ShiftTime::toShown((string) ($value['to'] ?? ShiftTime::LAST_MINUTE))
-        );
+        return sprintf('%s–%s', (string) ($value['from'] ?? '00:00'), (string) ($value['to'] ?? '23:59'));
     }
 
-    /**
-     * Sort key for a step: HH:MM compares correctly as a string.
-     *
-     * @param ForwardingRule|SkippedShift $step
-     */
-    private function startOf(ForwardingRule|array $step): string
+    /** Sort key for a rule: HH:MM compares correctly as a string. */
+    private function windowFrom(ForwardingRule $rule): string
     {
-        if (is_array($step)) {
-            return $step['start'];
-        }
-
-        return (string) ($this->windowValue($step)['from'] ?? '00:00');
+        return (string) ($this->windowValue($rule)['from'] ?? '00:00');
     }
 
     /** @return array<mixed> */
@@ -308,29 +286,45 @@ final class ForwardingPreview
     /** @param list<ForwardingTarget> $targets */
     private function renderTargets(array $targets): void
     {
-        echo '<h2 class="trusted-forwarding__targets-head">' . esc_html__('Numbers forwarded to', 'trusted') . '</h2>';
+        echo '<h2 class="trusted-forwarding__targets-head">' . esc_html__('Forwarded to', 'trusted') . '</h2>';
 
         if ($targets === []) {
-            echo '<p class="trusted-forwarding__empty">' . esc_html__('No responder numbers this week.', 'trusted') . '</p>';
+            echo '<p class="trusted-forwarding__empty">' . esc_html__('Nothing is forwarded this week.', 'trusted') . '</p>';
             return;
         }
 
-        usort($targets, static fn (ForwardingTarget $a, ForwardingTarget $b): int
-            => strcasecmp($a->getLabel(), $b->getLabel()));
-
-        echo '<div class="trusted-targets"><div class="trusted-targets__group">';
-        echo '<div class="trusted-targets__kind">' . esc_html__('Responders', 'trusted')
-            . ' <span>(' . count($targets) . ')</span></div>';
-        echo '<ul>';
+        $byKind = [];
         foreach ($targets as $target) {
-            $label = $target->getLabel() !== '' ? $target->getLabel() : $target->getId();
-            echo '<li><strong>' . esc_html($label) . '</strong>';
-            if ($target->getAddress() !== '') {
-                echo ' <span class="trusted-target__addr">' . esc_html($target->getAddress()) . '</span>';
-            }
-            echo '</li>';
+            $byKind[$target->getKind()][] = $target;
         }
-        echo '</ul></div></div>';
+        ksort($byKind);
+
+        echo '<div class="trusted-targets">';
+        foreach ($byKind as $kind => $group) {
+            usort($group, static fn (ForwardingTarget $a, ForwardingTarget $b): int
+                => strcasecmp($a->getLabel(), $b->getLabel()));
+
+            $heading = match ((string) $kind) {
+                ForwardingTarget::KIND_NUMBER    => __('Responders', 'trusted'),
+                ForwardingTarget::KIND_VOICEMAIL => __('Voicemail', 'trusted'),
+                default                          => ucfirst((string) $kind),
+            };
+
+            echo '<div class="trusted-targets__group">';
+            echo '<div class="trusted-targets__kind">' . esc_html($heading)
+                . ' <span>(' . count($group) . ')</span></div>';
+            echo '<ul>';
+            foreach ($group as $target) {
+                $label = $target->getLabel() !== '' ? $target->getLabel() : $target->getId();
+                echo '<li><strong>' . esc_html($label) . '</strong>';
+                if ($target->getAddress() !== '') {
+                    echo ' <span class="trusted-target__addr">' . esc_html($target->getAddress()) . '</span>';
+                }
+                echo '</li>';
+            }
+            echo '</ul></div>';
+        }
+        echo '</div>';
     }
 
     /**

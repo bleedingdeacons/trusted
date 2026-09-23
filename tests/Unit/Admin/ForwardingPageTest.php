@@ -128,7 +128,7 @@ describe('the call flow', function () {
 
         $html = ($this->render)();
 
-        expect($html)->toContain('No shifts on the rota this week', 'Trusted — Forwarding preview', 'nothing here is sent to Tamar')
+        expect($html)->toContain('No shifts on the rota this week', 'Trusted — Forwarding preview', 'nothing here is sent to Tamar', 'split at 23:59')
             ->and($html)->not->toContain('Monday 20 July');
     });
 
@@ -139,16 +139,16 @@ describe('the call flow', function () {
 
         expect($html)->toContain(
             'Wednesday 22 July',
-            '10:00–24:00',
+            '10:00–23:59',
             '<strong>Steve C</strong>',
             'Active',
             '07700 900123',
             '1 forwarding step',
-            'Numbers forwarded to',
+            'Forwarded to',
         )->and(substr_count($html, 'Nothing forwarded on this day.'))->toBe(6);
     });
 
-    it('draws a shift that forwards nowhere as a warning in its place', function () {
+    it('draws an unfilled shift as a voicemail step, with the reason, in its place', function () {
         ($this->weekOf)('2026-07-20', [
             forwardingSlot('2026-07-20', '14:00', '18:00', 'Late', id: 2),
             forwardingSlot('2026-07-20', '09:00', '12:00', null, id: 1),
@@ -159,10 +159,14 @@ describe('the call flow', function () {
 
         expect($html)->toContain(
             'Monday 20 July <span>(3)</span>',
-            '2 shifts not forwarded',
+            '3 forwarding steps',
+            '2 unfilled, to voicemail',
+            'Unfilled',
+            'dashicons-microphone',
             'Nobody is assigned to this shift.',
-            'The assigned member has no telephone number.',
+            'No Phone is assigned but has no telephone number.',
             'Responders <span>(1)</span>',
+            'Voicemail <span>(1)</span>',
         );
 
         // In time order within the day, whichever kind of step each is.
@@ -170,12 +174,14 @@ describe('the call flow', function () {
             ->and(strpos($html, '12:00–14:00'))->toBeLessThan(strpos($html, '14:00–18:00'));
     });
 
-    it('draws an overnight shift across both days', function () {
+    it('draws an overnight shift across both days, to the same person', function () {
         ($this->weekOf)('2026-07-20', [forwardingSlot('2026-07-26', '22:00', '06:00', 'Night Owl')]);
 
         $html = ($this->render)();
 
-        expect($html)->toContain('22:00–24:00', '00:00–06:00', '2 forwarding steps')
+        expect($html)->toContain('22:00–23:59', '00:00–06:00', '2 forwarding steps')
+            ->and(substr_count($html, '<li class="trusted-step">'))->toBe(2)
+            ->and($html)->not->toContain('Unfilled')
             ->and(strpos($html, '00:00–06:00'))->toBeLessThan(strpos($html, 'Sunday 26 July'));
     });
 });

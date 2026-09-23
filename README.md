@@ -80,14 +80,17 @@ A 7-day telephone shift **rota manager** for WordPress.
 group it would make, laid out like Tamar's forwarding overview: each day's
 forwarding steps in time order, Monday first, then the numbers they forward to.
 
-- Each assigned shift is one step on its weekday, forwarding to the
+- Each shift is a step on its weekday. A filled shift forwards to the
   responder's telephone. Steps are numbered through the week, earliest first,
   which is the order a hunt-in-order group rings overlapping windows.
-- An overnight shift is two steps — to 24:00 on its own day, then from 00:00
-  on the next. A Sunday night shift carries on into Monday, because a hunt
-  group repeats weekly.
-- A shift that would forward nowhere — unassigned, assigned to a member Unity
-  no longer has, or to one with no telephone — is shown in place as a warning.
+- The forwarding system's day runs 00:00–23:59, and times are shown that way.
+  A shift that straddles midnight is split into two steps for the same
+  person — to 23:59 on its own day, then from 00:00 on the next. A Sunday
+  night shift carries on into Monday, because a hunt group repeats weekly.
+- An unfilled shift forwards to voicemail by default. So does one assigned to
+  a member Unity no longer has, or to one with no telephone, since a call
+  cannot reach them either. These steps are flagged *Unfilled*, with the
+  reason.
 
 It is a preview only. It works whether or not Tamar is active, and nothing on
 it is sent upstream. The rules are built as Beacon `ForwardingRule` and

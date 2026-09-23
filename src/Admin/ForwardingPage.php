@@ -62,7 +62,7 @@ final class ForwardingPage
         echo '<div class="wrap trusted-wrap">';
         echo '<h1>' . esc_html__('Trusted — Forwarding preview', 'trusted') . '</h1>';
         echo '<p class="description">'
-            . esc_html__('How this week\'s rota would be laid out as a call-forwarding hunt group, one step per assigned shift. This is a preview only: nothing here is sent to Tamar.', 'trusted')
+            . esc_html__('How this week\'s rota would be laid out as a call-forwarding hunt group. Each shift forwards to the responder assigned to it, and an unfilled shift forwards to voicemail; a shift that runs past midnight is split at 23:59. This is a preview only: nothing here is sent to Tamar.', 'trusted')
             . '</p>';
 
         $this->renderWeekNav($week);
