@@ -78,6 +78,24 @@ describe('an assigned shift', function () {
         expect(windowOf($schedule->rules[0])['to'])->toBe('23:59');
     });
 
+    // The factory stores 24:00 as 23:59, but a forward must not depend on
+    // that: these slots are built directly, with the 24:00 left in.
+    it('writes a 24:00 end as 23:59 however the slot was built', function (?Member $member) {
+        $slot = new Rota(1, '2026-09-21', '18:00', '24:00');
+
+        if ($member !== null) {
+            $slot = $slot->withAssignments([(new Assignment(1, 1, $member->id()))->withMember($member)]);
+        }
+
+        $schedule = (new RotaForwardingProjection())->project([$slot]);
+
+        expect($schedule->rules)->toHaveCount(1)
+            ->and(windowOf($schedule->rules[0]))->toBe(['days' => ['mon'], 'from' => '18:00', 'to' => '23:59']);
+    })->with([
+        'filled'   => fn () => responder(),
+        'unfilled' => [null],
+    ]);
+
     it('offers the responder as a number target', function () {
         $schedule = (new RotaForwardingProjection())->project([slot('2026-09-21', '10:00', '14:00', responder())]);
 
