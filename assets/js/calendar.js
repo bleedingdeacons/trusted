@@ -787,9 +787,14 @@
     function buildAssignee(assignment, repaint) {
         var m = assignment.member || {};
         var name = m.name || (i18n.unassigned || 'Unknown');
-        var meta = [];
-        if (m.telephone) { meta.push(m.telephone); }
-        if (m.email) { meta.push(m.email); }
+        // Only the number they want to be rung on — never the email address.
+        // A tel: link, so it dials from a phone; the icon is inside the link
+        // so tapping it dials too.
+        var dial = m.telephone ? m.telephone.replace(/[^\d+]/g, '') : '';
+        var meta = dial ? el('a', { class: 'trusted-assignee-tel', href: 'tel:' + dial }, [
+            m.telephone,
+            el('span', { class: 'dashicons dashicons-phone', 'aria-hidden': 'true' })
+        ]) : null;
 
         var removeBtn = el('button', {
             class: 'trusted-assignee-remove', title: i18n.remove || 'Remove', text: '×',
@@ -810,7 +815,7 @@
         return el('div', { class: 'trusted-assignee' }, [
             el('div', { class: 'trusted-assignee-info' }, [
                 el('span', { class: 'trusted-assignee-name', text: name }),
-                meta.length ? el('span', { class: 'trusted-assignee-meta', text: meta.join(' · ') }) : null
+                meta ? el('span', { class: 'trusted-assignee-meta' }, [meta]) : null
             ]),
             removeBtn
         ]);

@@ -69,7 +69,7 @@ A 7-day telephone shift **rota manager** for WordPress.
    only new shifts are added — so re-applying never overwrites or duplicates your
    existing shifts. Tick *Replace* only when you want to wipe the week first.
 3. On any slot, pick a member from the **dropdown** and click **Assign**. Each
-   shift holds one member, shown with their name, telephone and email. To swap
+   shift holds one member, shown with their name and preferred telephone number (never their email). To swap
    who's on a shift, remove the current person (×) and assign someone else. The
    same member can be assigned to other shifts and other days. Add ad-hoc slots
    per day with **+ Add shift**.
@@ -159,8 +159,9 @@ Unity's `MemberRepository`:
 
 - `RestController::getMembers()` calls `findAll()` and keeps only members where
   `isTelephoneResponder()` is true, mapping each via `MemberPresenter`
-  (`getAnonymousName → name`, `getPersonalEmail → email`, `getMobileNumber →
-  telephone`), sorted by name.
+  (`getAnonymousName → name`, `getPersonalEmail → email`, and
+  `getLandlineNumber` when `getPreferredContact()` is Landline, otherwise
+  `getMobileNumber` `→ telephone`), sorted by name.
 - `AssignmentRepository` resolves the member for each assignment with
   `findById()`. This lookup is **not** responder-filtered, so historical
   assignments still display members who are no longer responders.

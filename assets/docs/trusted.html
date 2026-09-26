@@ -522,7 +522,7 @@
 
         <div class="callout warning">
             <span class="callout-icon">⚠️</span>
-            <div><strong>Personal data.</strong> A responder's mobile number and email appear on their shift
+            <div><strong>Personal data.</strong> A responder's preferred telephone number appears on their shift
             so whoever is coordinating can reach them. These are private contact details — the Scrutiny plugin
             logs access to them. Use them only for rota purposes and never share them outside the system.</div>
         </div>
@@ -713,8 +713,9 @@
             <li>Scroll to the <strong>Service</strong> group on the member record.</li>
             <li>Switch <strong>Telephone Responder</strong> to <span class="badge badge-on">On</span>.</li>
             <li>Scroll to the <strong>About</strong> group and fill in the <strong>Mobile Number</strong> and
-                <strong>Personal Email</strong> — both are <strong>required</strong>. These are what the rota shows
-                so the responder can be reached on their shift.</li>
+                <strong>Personal Email</strong> — both are <strong>required</strong>. If they have a landline too, set
+                <strong>Preferred Contact</strong> to the number they want to be rung on — that is the one the
+                rota shows on their shift.</li>
             <li>Click <strong>Update</strong> (or <strong>Publish</strong> for a new member).</li>
         </ol>
 
@@ -723,8 +724,9 @@
             <tbody>
             <tr><td><span class="field-name">Telephone Responder</span><span class="req">*</span></td><td>Must be <strong>On</strong>. Without it the member never appears in the rota dropdown.</td></tr>
             <tr><td><span class="field-name">Anonymous Name</span><span class="req">*</span></td><td>This is the name shown on the shift card. Must be unique across all members.</td></tr>
-            <tr><td><span class="field-name">Mobile Number</span><span class="req">*</span></td><td>Required. Shown beneath the name on the shift so the coordinator can call them. Private — logged by Scrutiny.</td></tr>
-            <tr><td><span class="field-name">Personal Email</span><span class="req">*</span></td><td>Required. Shown beside the number on the shift. Private — logged by Scrutiny.</td></tr>
+            <tr><td><span class="field-name">Mobile Number</span><span class="req">*</span></td><td>Required. Shown beneath the name on the shift so the coordinator can call them, unless the member prefers their landline. Private — logged by Scrutiny.</td></tr>
+            <tr><td><span class="field-name">Landline Number</span></td><td>Optional. Shown on the shift instead of the mobile when <strong>Preferred Contact</strong> is Landline. Private — logged by Scrutiny.</td></tr>
+            <tr><td><span class="field-name">Personal Email</span><span class="req">*</span></td><td>Required by the member record, but never shown on the shift. Private — logged by Scrutiny.</td></tr>
             </tbody>
         </table>
 
@@ -966,7 +968,8 @@
         <p>The calendar shows one week at a time, as seven day columns (Monday to Sunday). Each column lists its
         shifts in time order. Every shift has a coloured bar down its left edge — <strong>blue</strong> when a
         responder is assigned, <strong>yellow</strong> when it still needs someone. A filled shift shows the
-        responder's name with their phone and email.</p>
+        responder's name with their preferred phone number — their mobile, or their landline if that is what
+        they prefer. Email addresses are not shown.</p>
 
         <div class="screen-mock">
             <div class="mock-bar">
@@ -1004,12 +1007,12 @@
                 <div class="rota-mock">
                     <div class="rota-day">
                         <div class="rota-day-head">Mon <span>3 Mar</span></div>
-                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">Sarah T.</div><div class="meta">07700 900123 · sarah@…</div></div>
+                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">Sarah T.</div><div class="meta">07700 900123</div></div>
                         <div class="rota-slot open"><span class="t">13:00–17:00</span><div class="l">Reception</div><span class="rota-assign-btn">Assign</span></div>
                     </div>
                     <div class="rota-day">
                         <div class="rota-day-head">Tue <span>4 Mar</span></div>
-                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">James R.</div><div class="meta">07700 900456 · james@…</div></div>
+                        <div class="rota-slot"><span class="t">09:00–13:00</span><div class="l">Reception</div><div class="who">James R.</div><div class="meta">0117 496 0456</div></div>
                         <div class="rota-gap">Gap 13:00–24:00</div>
                     </div>
                     <div class="rota-day">
@@ -1023,7 +1026,7 @@
         <table class="status-table">
             <thead><tr><th>You'll see</th><th>Meaning</th></tr></thead>
             <tbody>
-            <tr><td><span class="bar-demo alloc"><strong>09:00–13:00</strong> Reception<br><span class="demo-sub">Sarah T.</span></span></td><td><strong>Filled shift</strong> — a <strong>blue</strong> bar down the left edge. Someone is assigned; their name, phone and email are shown, with a × to remove them.</td></tr>
+            <tr><td><span class="bar-demo alloc"><strong>09:00–13:00</strong> Reception<br><span class="demo-sub">Sarah T.</span></span></td><td><strong>Filled shift</strong> — a <strong>blue</strong> bar down the left edge. Someone is assigned; their name and preferred phone number are shown, with a × to remove them.</td></tr>
             <tr><td><span class="bar-demo unalloc"><strong>13:00–17:00</strong> Reception<br><span class="demo-sub">Assign</span></span></td><td><strong>Open shift</strong> — a <strong>yellow</strong> bar down the left edge means no one is assigned yet. Has an <strong>Assign</strong> button.</td></tr>
             <tr><td><span class="bar-demo gap">Gap 13:00–24:00</span></td><td><strong>Gap</strong> — a block shaded <strong>yellow all over</strong>. A stretch of the day with no shift at all. Double-click it to add a shift covering that time. A shift that runs overnight covers the next morning too, so the next day's first gap starts when that shift ends, not at midnight.</td></tr>
             <tr><td><span class="bar-demo" style="background:#f0f0f1;border-color:#c3c4c7;color:#646970;text-align:center;">00:00–10:00</span></td><td><strong>Before the rota starts</strong> — a <strong>grey</strong> block before a day's first shift, when nothing on the previous day runs past 24:00 (for example the very first Monday, with no Sunday night before it). It is not a gap to fill, so double-clicking it does nothing.</td></tr>
@@ -1111,7 +1114,7 @@
             <li>On an open shift, click <strong>Assign</strong>.</li>
             <li>Choose a person from the <strong>— Select a member —</strong> dropdown. The list contains only
                 telephone responders, sorted by name.</li>
-            <li>Click <strong>Assign</strong>. Their name, phone and email now show on the shift.</li>
+            <li>Click <strong>Assign</strong>. Their name and preferred phone number now show on the shift.</li>
         </ol>
 
         <h3>Swapping who's on a shift</h3>

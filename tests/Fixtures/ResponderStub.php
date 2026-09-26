@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Trusted\Tests\Fixtures;
 
+use Unity\Members\PreferredContact;
 use Unity\Testing\Doubles\MemberStub;
 
 /**
@@ -32,6 +33,8 @@ final class ResponderStub extends MemberStub
         string $anonymousName = 'John D',
         string $personalEmail = 'john@example.test',
         string $mobileNumber = '07700 900123',
+        string $landlineNumber = '',
+        PreferredContact $preferredContact = PreferredContact::Mobile,
     ) {
         parent::__construct(
             id: $id,
@@ -40,6 +43,8 @@ final class ResponderStub extends MemberStub
             showMemberProfile: true,
             personalEmail: $personalEmail,
             mobileNumber: $mobileNumber,
+            landlineNumber: $landlineNumber,
+            preferredContact: $preferredContact,
             telephoneResponder: $telephoneResponder,
             gdprAccepted: true,
         );
