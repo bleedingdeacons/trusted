@@ -11,6 +11,7 @@ if (! defined('ABSPATH')) {
 
 use Trusted\Domain\Member;
 use Unity\Members\Interfaces\Member as UnityMember;
+use Unity\Members\PreferredContact;
 
 /**
  * Adapts a Unity member to Trusted's lightweight Member value object.
@@ -21,7 +22,13 @@ use Unity\Members\Interfaces\Member as UnityMember;
  *
  *   getAnonymousName() -> name
  *   getPersonalEmail() -> email
- *   getMobileNumber()  -> telephone
+ *   getPreferredContact() picks the telephone:
+ *     Mobile   -> getMobileNumber()
+ *     Landline -> getLandlineNumber()
+ *
+ * The telephone is the number the member wants to be rung on, so it is what
+ * the calendar shows on a filled shift and what forwarding rings. Unity
+ * already resolves a member with no landline to Mobile.
  */
 final class MemberPresenter
 {
@@ -31,7 +38,14 @@ final class MemberPresenter
             id: (string) $member->getId(),
             name: $member->getAnonymousName(),
             email: $member->getPersonalEmail(),
-            telephone: $member->getMobileNumber(),
+            telephone: self::telephone($member),
         );
+    }
+
+    private static function telephone(UnityMember $member): string
+    {
+        return $member->getPreferredContact() === PreferredContact::Landline
+            ? $member->getLandlineNumber()
+            : $member->getMobileNumber();
     }
 }

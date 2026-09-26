@@ -10,6 +10,7 @@ use Trusted\Domain\Rota;
 use Trusted\Domain\Shift;
 use Trusted\Support\MemberPresenter;
 use Trusted\Tests\Fixtures\ResponderStub;
+use Unity\Members\PreferredContact;
 
 /*
  * Tests for the value objects and the Unity-to-Trusted member mapping.
@@ -82,7 +83,7 @@ describe('MemberPresenter', function () {
     it('maps Unity fields onto Trusted ones', function () {
         // The single mapping point between Unity's domain and Trusted's REST
         // boundary: anonymous name -> name, personal email -> email,
-        // mobile number -> telephone.
+        // preferred number -> telephone.
         $member = MemberPresenter::toMember(new ResponderStub(
             id: 42,
             anonymousName: 'John D',
@@ -94,5 +95,25 @@ describe('MemberPresenter', function () {
             ->and($member->name())->toBe('John D')
             ->and($member->email())->toBe('john@example.test')
             ->and($member->telephone())->toBe('07700 900123');
+    });
+
+    it('uses the mobile when the member prefers it, even with a landline', function () {
+        $member = MemberPresenter::toMember(new ResponderStub(
+            mobileNumber: '07700 900123',
+            landlineNumber: '0117 496 0000',
+            preferredContact: PreferredContact::Mobile,
+        ));
+
+        expect($member->telephone())->toBe('07700 900123');
+    });
+
+    it('uses the landline when the member prefers it', function () {
+        $member = MemberPresenter::toMember(new ResponderStub(
+            mobileNumber: '07700 900123',
+            landlineNumber: '0117 496 0000',
+            preferredContact: PreferredContact::Landline,
+        ));
+
+        expect($member->telephone())->toBe('0117 496 0000');
     });
 });
