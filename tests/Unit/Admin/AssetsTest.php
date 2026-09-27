@@ -134,7 +134,7 @@ describe('the localised payload', function () {
 
         expect(array_keys($i18n))->toBe([
             'assign', 'selectMember', 'select', 'addShift', 'applyTemplate', 'selectTemplate',
-            'replace', 'prevWeek', 'nextWeek', 'today', 'remove', 'confirmRemove',
+            'replace', 'prevWeek', 'nextWeek', 'today', 'weekNumber', 'remove', 'confirmRemove',
             'bulkAssign', 'bulkHint', 'oneSelected', 'manySelected', 'bulkSkipped',
             'noTemplates', 'unassigned', 'gap', 'gapAddHint', 'gapLocked', 'saveAsTemplate',
             'templateName', 'includeMembers', 'templateNameRequired', 'templateSaved',
@@ -154,6 +154,7 @@ describe('the localised payload', function () {
         $this->assets->enqueue(CALENDAR_HOOK);
 
         expect(localizedData()['i18n'])
+            ->weekNumber->toContain('%d')
             ->manySelected->toContain('%d')
             ->bulkSkipped->toContain('%d')
             ->templateSaved->toContain('%s');

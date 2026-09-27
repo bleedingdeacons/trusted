@@ -110,7 +110,11 @@ final class ForwardingPage
         echo '<div class="trusted-toolbar">';
         echo '<div class="trusted-nav">';
         echo '<strong class="trusted-week-label">'
-            . esc_html($week . ' – ' . $monday->modify('+6 days')->format('Y-m-d')) . '</strong>';
+            . esc_html(
+                $week . ' – ' . $monday->modify('+6 days')->format('Y-m-d') . ' · '
+                /* translators: %d: ISO-8601 week number, 1–53. */
+                . sprintf(__('Week %d', 'trusted'), (int) $monday->format('W'))
+            ) . '</strong>';
         echo '<div class="trusted-week-buttons">';
         echo '<a class="button" href="' . esc_url($this->weekUrl($monday->modify('-7 days')->format('Y-m-d'))) . '">'
             . esc_html__('← Previous', 'trusted') . '</a>';

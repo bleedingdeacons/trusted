@@ -51,6 +51,8 @@ final class Assets
                 'prevWeek'      => __('← Previous', 'trusted'),
                 'nextWeek'      => __('Next →', 'trusted'),
                 'today'         => __('This week', 'trusted'),
+                /* translators: %d: ISO-8601 week number, 1–53. */
+                'weekNumber'    => __('Week %d', 'trusted'),
                 'remove'        => __('Remove', 'trusted'),
                 'confirmRemove' => __('Are you sure?', 'trusted'),
                 'bulkAssign'    => __('Assign member to shifts', 'trusted'),
