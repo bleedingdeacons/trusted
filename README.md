@@ -92,10 +92,33 @@ forwarding steps in time order, Monday first, then the numbers they forward to.
   cannot reach them either. These steps are flagged *Unfilled*, with the
   reason.
 
-It is a preview only. It works whether or not Tamar is active, and nothing on
-it is sent upstream. The rules are built as Beacon `ForwardingRule` and
-`ForwardingTarget` models (`Trusted\Forwarding\RotaForwardingProjection`), in
-the shape Tamar's driver reads and writes.
+The preview works whether or not Tamar is active. The rules are built as
+Beacon `ForwardingRule` and `ForwardingTarget` models
+(`Trusted\Forwarding\RotaForwardingProjection`), in the shape Tamar's driver
+reads and writes.
+
+#### Publishing a week to Tamar
+
+When Tamar is active, the page also has a **Publish to Tamar as "Forward Week
+N"** button, where N is the week's ISO-8601 number. It is the only thing on the
+page that sends anything upstream, and it asks for confirmation first. It
+hands the week's rules to Tamar through Tamar's `tamar/publish_huntgroup`
+filter, and Tamar then:
+
+- creates a hunt group called `Forward Week N` in the control panel, or reuses
+  one that already has that name, so publishing a week twice overwrites it;
+- replaces every row in it with the week's rules, taking the greeting,
+  voicemail box, hunting strategy and ring timeout from the hunt group it was
+  showing before;
+- makes it the hunt group Tamar's Overview shows.
+
+Calls do not reach the new group until the phone number is pointed at it in
+the Tamar panel; that step is still done by hand. Old week groups are not
+deleted.
+
+Publishing needs Trusted's capability (`manage_options` unless filtered) and
+Tamar's `beacon_manage_forwarding`. The outcome is shown as a notice on the
+page.
 
 ### Developer Tools
 
