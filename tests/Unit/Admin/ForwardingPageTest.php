@@ -20,10 +20,10 @@ use Trusted\Factory\RotaFactory;
 /*
  * Tests for the Forwarding preview page and the call-flow view it draws.
  *
- * The page is read-only, so there is no exit wall here: registration is
- * asserted against WpState, the capability guard against the WpDieException
- * the shared wp_die() throws, and render() runs for real inside an output
- * buffer against a mocked rota repository.
+ * Registration is asserted against WpState, the capability guards against the
+ * WpDieException the shared wp_die() throws, and render() runs for real inside
+ * an output buffer against a mocked rota repository. The Publish handler ends
+ * in redirect-and-exit, so its body, publishFromRequest(), is driven directly.
  *
  * WpState::$now is Friday 2026-07-24, so the current week is Monday 20 July.
  */
@@ -221,5 +221,155 @@ describe('the call flow', function () {
             ->and(substr_count($html, '<li class="trusted-step">'))->toBe(2)
             ->and($html)->not->toContain('Unfilled')
             ->and(strpos($html, '00:00–06:00'))->toBeLessThan(strpos($html, 'Sunday 26 July'));
+    });
+});
+
+// Tamar registers tamar/publish_huntgroup when it is active; Brain Monkey
+// records the add_filter() for has_filter(), and expectApplied() stands in
+// for Tamar's callback, which apply_filters() does not run under it.
+describe('publishing to Tamar', function () {
+    beforeEach(function () {
+        $this->tamarActive = function (): void {
+            add_filter('tamar/publish_huntgroup', fn () => null, 10, 3);
+        };
+
+        $this->publish = fn (): array
+            => (new \ReflectionMethod($this->page, 'publishFromRequest'))->invoke($this->page);
+
+        $_POST = [];
+    });
+
+    afterEach(function () {
+        $_POST = [];
+    });
+
+    it('names the hunt group after the ISO week number', function (string $monday, string $name) {
+        expect(ForwardingPage::huntgroupName($monday))->toBe($name);
+    })->with([
+        ['2026-07-20', 'Forward Week 30'],
+        ['2026-02-02', 'Forward Week 6'],
+        ['2026-12-28', 'Forward Week 53'],
+        ['2027-01-04', 'Forward Week 1'],
+    ]);
+
+    it('offers no Publish button without Tamar, and says nothing is sent', function () {
+        ($this->weekOf)('2026-07-20', [forwardingSlot('2026-07-20', '10:00', '14:00', 'Steve C')]);
+
+        $html = ($this->render)();
+
+        expect($html)->toContain('This is a preview only: nothing here is sent to Tamar.')
+            ->and($html)->not->toContain('trusted_publish_forwarding');
+    });
+
+    it('offers to publish the week shown as Forward Week N when Tamar is active', function () {
+        ($this->tamarActive)();
+        $_GET = ['week' => '2026-09-24'];
+        ($this->weekOf)('2026-09-21', [forwardingSlot('2026-09-21', '10:00', '14:00', 'Steve C')]);
+
+        $html = ($this->render)();
+
+        expect($html)->toContain(
+            'Nothing is sent to Tamar until you press Publish.',
+            'name="action" value="trusted_publish_forwarding"',
+            'name="week" value="2026-09-21"',
+            'Publish to Tamar as &quot;Forward Week 39&quot;',
+            'window.confirm(',
+        )->and($html)->not->toContain('This is a preview only');
+    });
+
+    it('offers nothing to publish for a week with no shifts', function () {
+        ($this->tamarActive)();
+        ($this->weekOf)('2026-07-20', []);
+
+        expect(($this->render)())->not->toContain('trusted_publish_forwarding');
+    });
+
+    it('hands the week\'s rules to Tamar under the week\'s name', function () {
+        ($this->tamarActive)();
+        $_POST = ['week' => '2026-07-22'];
+        ($this->weekOf)('2026-07-20', [
+            forwardingSlot('2026-07-20', '10:00', '14:00', 'Steve C', id: 1),
+            forwardingSlot('2026-07-21', '10:00', '14:00', id: 2),
+        ]);
+
+        $sent = null;
+        Filters\expectApplied('tamar/publish_huntgroup')->once()
+            ->andReturnUsing(function ($published, string $name, array $rules) use (&$sent) {
+                $sent = [$name, $rules];
+                return ['id' => '200001', 'name' => $name];
+            });
+
+        $notice = ($this->publish)();
+
+        expect($notice)->toBe([
+            'type' => 'success',
+            'message' => 'Published "Forward Week 30" to Tamar with 2 forwarding steps. Tamar\'s Overview now shows it.',
+            'week' => '2026-07-20',
+        ])->and($sent[0])->toBe('Forward Week 30')
+            ->and($sent[1])->toHaveCount(2)
+            ->and($sent[1][0]->getTargetId())->toBe('num:07700900123')
+            ->and($sent[1][1]->getTargetId())->toBe('vm:default');
+    });
+
+    it('reports the reason Tamar gives for a failure', function () {
+        ($this->tamarActive)();
+        $_POST = ['week' => '2026-07-20'];
+        ($this->weekOf)('2026-07-20', [forwardingSlot('2026-07-20', '10:00', '14:00', 'Steve C')]);
+        Filters\expectApplied('tamar/publish_huntgroup')->once()
+            ->andReturnUsing(fn () => throw new \RuntimeException('Upstream returned status 500.'));
+
+        expect(($this->publish)())->toBe([
+            'type' => 'error',
+            'message' => 'Could not publish "Forward Week 30" to Tamar: Upstream returned status 500.',
+            'week' => '2026-07-20',
+        ]);
+    });
+
+    it('does not take an unconfirmed publish for a success', function () {
+        ($this->tamarActive)();
+        $_POST = ['week' => '2026-07-20'];
+        ($this->weekOf)('2026-07-20', [forwardingSlot('2026-07-20', '10:00', '14:00', 'Steve C')]);
+        Filters\expectApplied('tamar/publish_huntgroup')->once()->andReturn(null);
+
+        expect(($this->publish)())->type->toBe('error')
+            ->message->toBe('Tamar did not confirm that "Forward Week 30" was published.');
+    });
+
+    it('refuses before reading the rota', function (array $post, bool $tamar, string $message) {
+        if ($tamar) {
+            ($this->tamarActive)();
+        }
+        $_POST = $post;
+        $this->rota->shouldNotReceive('findForWeek');
+
+        expect(($this->publish)())->type->toBe('error')->message->toBe($message);
+    })->with([
+        'not a date' => [['week' => 'nonsense'], true, 'That is not a week that can be published.'],
+        'no week' => [[], true, 'That is not a week that can be published.'],
+        'no Tamar' => [['week' => '2026-07-20'], false, 'Tamar is not active, so there is nowhere to publish to.'],
+    ]);
+
+    it('refuses an empty week without troubling Tamar', function () {
+        ($this->tamarActive)();
+        $_POST = ['week' => '2026-07-20'];
+        ($this->weekOf)('2026-07-20', []);
+        Filters\expectApplied('tamar/publish_huntgroup')->never();
+
+        expect(($this->publish)())->message->toBe('This week has no shifts, so there is nothing to publish.');
+    });
+
+    it('refuses a user without the capability', function () {
+        WpState::$userCan = false;
+        $this->rota->shouldNotReceive('findForWeek');
+
+        $this->page->handlePublish();
+    })->throws(WpDieException::class, 'You are not allowed to do this.');
+
+    it('shows the outcome once, on the next view of the page', function () {
+        set_transient('trusted_publish_notice_' . get_current_user_id(), ['type' => 'success', 'message' => 'Published it.', 'week' => '2026-07-20']);
+        $this->rota->shouldReceive('findForWeek')->twice()->andReturn([]);
+
+        expect(($this->render)())->toContain('<div class="notice notice-success is-dismissible"><p>Published it.</p></div>')
+            ->and(($this->render)())->not->toContain('Published it.');
     });
 });

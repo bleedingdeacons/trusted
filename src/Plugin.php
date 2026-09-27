@@ -77,8 +77,11 @@ final class Plugin
         add_action('admin_enqueue_scripts', [new Assets(), 'enqueue']);
 
         // The rota as a call-forwarding hunt group, laid out like Tamar's
-        // overview. Read-only; works whether or not Tamar is active.
-        add_action('admin_menu', [new ForwardingPage($container), 'registerMenu']);
+        // overview. Works whether or not Tamar is active; with Tamar, it can
+        // also publish the week to the panel as "Forward Week N".
+        $forwardingPage = new ForwardingPage($container);
+        add_action('admin_menu', [$forwardingPage, 'registerMenu']);
+        add_action('admin_post_' . ForwardingPage::PUBLISH_ACTION, [$forwardingPage, 'handlePublish']);
 
         $developerPage = new DeveloperPage($container);
         add_action('admin_menu', [$developerPage, 'registerMenu']);
