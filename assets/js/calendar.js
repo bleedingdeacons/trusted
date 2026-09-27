@@ -87,6 +87,17 @@
         return toIsoDate(d);
     }
 
+    // ISO-8601 week number (1–53) of the Monday-start week beginning on
+    // weekStart. The ISO week is the one holding its Thursday, and week 1 is
+    // the week holding the year's first Thursday, so counting that Thursday's
+    // day-of-year in sevens gives the number. Rounding the day difference
+    // absorbs the hour a DST change adds or removes.
+    function isoWeekNumber(weekStart) {
+        var thursday = new Date(addDays(weekStart, 3) + 'T00:00:00');
+        var jan1 = new Date(thursday.getFullYear(), 0, 1);
+        return Math.floor(Math.round((thursday - jan1) / 86400000) / 7) + 1;
+    }
+
     function prettyDate(isoDate) {
         var d = new Date(isoDate + 'T00:00:00');
         return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -247,7 +258,8 @@
     }
 
     function buildToolbar(week) {
-        var label = state.weekStart + ' – ' + addDays(state.weekStart, 6);
+        var label = state.weekStart + ' – ' + addDays(state.weekStart, 6)
+            + ' · ' + (i18n.weekNumber || 'Week %d').replace('%d', isoWeekNumber(state.weekStart));
 
         var templateSelect = el('select', { class: 'trusted-template-select' });
         templateSelect.appendChild(el('option', { value: '', text: i18n.selectTemplate || 'Select Template' }));

@@ -113,7 +113,7 @@ describe('choosing the week', function () {
     it('shows the current week by default', function () {
         ($this->weekOf)('2026-07-20', []);
 
-        expect(($this->render)())->toContain('<strong class="trusted-week-label">2026-07-20 – 2026-07-26</strong>');
+        expect(($this->render)())->toContain('<strong class="trusted-week-label">2026-07-20 – 2026-07-26 · Week 30</strong>');
     });
 
     it('shows the week containing any date asked for', function () {
@@ -122,6 +122,19 @@ describe('choosing the week', function () {
 
         expect(($this->render)())->toContain('2026-09-21 – 2026-09-27');
     });
+
+    // ISO-8601 numbering: 2026 has 53 weeks, and the week holding 1 January
+    // 2027 is still 2026's last because its Thursday falls in 2026.
+    it('ends the label with the ISO week number', function (string $monday, string $expected) {
+        $_GET = ['week' => $monday];
+        ($this->weekOf)($monday, []);
+
+        expect(($this->render)())->toContain($expected . '</strong>');
+    })->with([
+        'first week of 2026'  => ['2025-12-29', '2025-12-29 – 2026-01-04 · Week 1'],
+        'week 53 of 2026'     => ['2026-12-28', '2026-12-28 – 2027-01-03 · Week 53'],
+        'first week of 2027'  => ['2027-01-04', '2027-01-04 – 2027-01-10 · Week 1'],
+    ]);
 
     it('falls back to the current week for something that is not a date', function (string $week) {
         $_GET = ['week' => $week];
