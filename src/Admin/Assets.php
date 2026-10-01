@@ -97,6 +97,10 @@ final class Assets
                 'checkForwardingHint' => __('Compare Tamar\'s hunt group for this week with the rota. Nothing in Tamar is changed.', 'trusted'),
                 'checkCurrentOnly'    => __('Only the current week\'s forwarding can be checked. Go to This week to check it.', 'trusted'),
                 'dismiss'             => __('Dismiss this notice.', 'trusted'),
+                'syncForwarding'      => __('Sync to Tamar', 'trusted'),
+                'syncingForwarding'   => __('Syncing…', 'trusted'),
+                /* translators: %s: hunt group name, e.g. "Forward Week 40". */
+                'confirmSync'         => __('Write this week\'s rota to Tamar as "%s"? Every row in that hunt group is replaced, and it becomes the group Tamar\'s Overview shows.', 'trusted'),
             ],
         ]);
     }

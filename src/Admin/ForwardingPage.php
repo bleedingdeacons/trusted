@@ -38,7 +38,7 @@ final class ForwardingPage
     public const PUBLISH_ACTION = 'trusted_publish_forwarding';
 
     /** The filter Tamar publishes a hunt group through. */
-    private const PUBLISH_HOOK = 'tamar/publish_huntgroup';
+    public const PUBLISH_HOOK = 'tamar/publish_huntgroup';
 
     public function __construct(private Container $container)
     {

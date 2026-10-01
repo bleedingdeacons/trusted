@@ -85,7 +85,7 @@ beforeEach(function () {
     };
 });
 
-it('registers a read-only route under the calendar\'s namespace', function () {
+it('registers the check and sync routes under the calendar\'s namespace', function () {
     $registered = [];
     Functions\when('register_rest_route')->alias(
         function (string $ns, string $route, array $args) use (&$registered): bool {
@@ -96,7 +96,10 @@ it('registers a read-only route under the calendar\'s namespace', function () {
 
     $this->controller->registerRoutes();
 
-    expect($registered)->toBe([[RestController::NAMESPACE, '/forwarding-check', 'GET']]);
+    expect($registered)->toBe([
+        [RestController::NAMESPACE, '/forwarding-check', 'GET'],
+        [RestController::NAMESPACE, '/forwarding-sync', 'POST'],
+    ]);
 });
 
 it('lets in only users with the Trusted capability', function () {
@@ -130,6 +133,7 @@ it('reports a match when Tamar forwards the week as the rota does', function () 
             'status'      => 'match',
             'message'     => 'Tamar\'s "Forward Week 40" matches this week\'s rota.',
             'differences' => [],
+            'can_sync'    => false,
         ]);
 });
 
@@ -208,3 +212,122 @@ it('does not take an answer without rules for a hunt group', function (mixed $gr
     'no rules'        => [['id' => '1', 'name' => 'Forward Week 40']],
     'not rule models' => [['id' => '1', 'name' => 'Forward Week 40', 'rules' => [['id' => '1']]]],
 ]);
+
+// -- offering a sync ----------------------------------------------------------
+
+it('offers a sync when the group is missing or different and Tamar can publish', function (?array $group) {
+    ($this->tamarActive)();
+    add_filter('tamar/publish_huntgroup', fn () => null, 10, 3);
+    ($this->week)();
+    ($this->tamarHolds)($group);
+
+    expect($this->controller->check()->get_data()['can_sync'])->toBeTrue();
+})->with([
+    'missing'   => [null],
+    'different' => [['id' => '1', 'name' => 'Forward Week 40', 'rules' => []]],
+]);
+
+it('offers no sync when Tamar cannot publish', function () {
+    ($this->tamarActive)();
+    ($this->week)();
+    ($this->tamarHolds)(null);
+
+    expect($this->controller->check()->get_data()['can_sync'])->toBeFalse();
+});
+
+it('offers no sync for a week with no shifts', function () {
+    ($this->tamarActive)();
+    add_filter('tamar/publish_huntgroup', fn () => null, 10, 3);
+    $this->rota->shouldReceive('findForWeek')->once()->with(CHECK_MONDAY)->andReturn([]);
+    ($this->tamarHolds)(null);
+
+    expect($this->controller->check()->get_data()['can_sync'])->toBeFalse();
+});
+
+// -- syncing ------------------------------------------------------------------
+
+describe('syncing to Tamar', function () {
+    beforeEach(function () {
+        ($this->tamarActive)();
+        add_filter('tamar/publish_huntgroup', fn () => null, 10, 3);
+    });
+
+    it('writes the current week under its name, then reads it back', function () {
+        ($this->week)();
+
+        $sent = null;
+        Filters\expectApplied('tamar/publish_huntgroup')->once()
+            ->andReturnUsing(function ($published, string $name, array $rules) use (&$sent) {
+                $sent = [$name, $rules];
+                return ['id' => '180000', 'name' => $name];
+            });
+        ($this->tamarHolds)(['id' => '180000', 'name' => 'Forward Week 40', 'rules' => [
+            heldRule(1, 'num:07700900123', ['mon'], '10:00', '14:00', 'Anon A'),
+            heldRule(2, 'vm:20042', ['mon'], '14:00', '18:00'),
+        ]]);
+
+        $data = $this->controller->sync()->get_data();
+
+        expect($sent[0])->toBe('Forward Week 40')
+            ->and($sent[1])->toHaveCount(2)
+            ->and($sent[1][0]->getTargetId())->toBe('num:07700900123')
+            ->and($data)->toMatchArray([
+                'status'   => 'match',
+                'synced'   => true,
+                'can_sync' => false,
+                'message'  => 'Synced this week\'s rota to Tamar\'s "Forward Week 40" (2 forwarding steps). It now matches, and Tamar\'s Overview shows it.',
+            ]);
+    });
+
+    it('does not report success when the group still differs afterwards', function () {
+        ($this->week)();
+        Filters\expectApplied('tamar/publish_huntgroup')->once()->andReturn(['id' => '180000', 'name' => 'Forward Week 40']);
+        ($this->tamarHolds)(['id' => '180000', 'name' => 'Forward Week 40', 'rules' => []]);
+
+        $data = $this->controller->sync()->get_data();
+
+        expect($data['status'])->toBe('mismatch')
+            ->and($data['message'])->toStartWith('Tamar accepted the sync of "Forward Week 40", but reading it back still shows a difference.')
+            ->and($data['differences'])->toHaveCount(2);
+    });
+
+    it('passes on the reason Tamar gives for refusing the write', function () {
+        ($this->week)();
+        Filters\expectApplied('tamar/publish_huntgroup')->once()
+            ->andReturnUsing(fn () => throw new \RuntimeException('You do not have permission to publish forwarding to Tamar.'));
+        Filters\expectApplied('tamar/find_huntgroup')->never();
+
+        $error = $this->controller->sync();
+
+        expect($error)->toBeInstanceOf(WP_Error::class)
+            ->and($error->get_error_message())->toBe('Could not sync "Forward Week 40" to Tamar: You do not have permission to publish forwarding to Tamar.')
+            ->and($error->get_error_data())->toBe(['status' => 502]);
+    });
+
+    it('does not take an unconfirmed write for a sync', function () {
+        ($this->week)();
+        Filters\expectApplied('tamar/publish_huntgroup')->once()->andReturn(null);
+
+        expect($this->controller->sync()->get_error_message())->toBe('Tamar did not confirm that "Forward Week 40" was synced.');
+    });
+
+    it('refuses an empty week without troubling Tamar', function () {
+        $this->rota->shouldReceive('findForWeek')->once()->andReturn([]);
+        Filters\expectApplied('tamar/publish_huntgroup')->never();
+
+        $error = $this->controller->sync();
+
+        expect($error->get_error_code())->toBe('trusted_forwarding_empty')
+            ->and($error->get_error_data())->toBe(['status' => 409]);
+    });
+});
+
+it('refuses to sync when Tamar cannot publish, before reading the rota', function () {
+    ($this->tamarActive)();
+    $this->rota->shouldNotReceive('findForWeek');
+
+    $error = $this->controller->sync();
+
+    expect($error->get_error_code())->toBe('trusted_forwarding_unavailable')
+        ->and($error->get_error_message())->toBe('Tamar is not active, so there is nowhere to sync to.');
+});
