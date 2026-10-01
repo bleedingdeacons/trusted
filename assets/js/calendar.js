@@ -310,6 +310,24 @@
 
         var toolbar;
 
+        // Compare Tamar's hunt group for the current week with the rota. Read
+        // only — nothing is sent to Tamar. Shown only when Tamar is active,
+        // and enabled only while the current week is on screen, since that is
+        // the week the server checks.
+        var checkBtn = null;
+        if (cfg.forwardingCheck) {
+            var isCurrentWeek = state.weekStart === cfg.weekStart;
+            checkBtn = el('button', {
+                class: 'button trusted-check-forwarding',
+                text: i18n.checkForwarding || 'Check Tamar forwarding',
+                title: isCurrentWeek
+                    ? (i18n.checkForwardingHint || 'Compare Tamar\'s hunt group for this week with the rota. Nothing in Tamar is changed.')
+                    : (i18n.checkCurrentOnly || 'Only the current week\'s forwarding can be checked. Go to This week to check it.'),
+                onclick: function () { checkForwarding(checkBtn, toolbar); }
+            });
+            checkBtn.disabled = !isCurrentWeek;
+        }
+
         var saveTemplateBtn = el('button', {
             class: 'button trusted-save-template-start',
             text: i18n.saveAsTemplate || 'Save week as template',
@@ -371,7 +389,8 @@
                 // Assign members. Both hidden while already in bulk mode.
                 state.bulk ? null : el('div', { class: 'trusted-week-actions' }, [
                     saveTemplateBtn,
-                    bulkBtn
+                    bulkBtn,
+                    checkBtn
                 ]),
                 // Apply-a-template controls: the dropdown on top, then the Apply
                 // button with the Replace toggle alongside it.
@@ -393,6 +412,48 @@
         ]);
 
         return toolbar;
+    }
+
+    // Ask the server whether Tamar's hunt group for the current week matches
+    // the rota, and show the answer as a notice under the toolbar: success
+    // when it matches, a warning listing the differences when it does not or
+    // when the group does not exist, an error when Tamar could not be read.
+    function checkForwarding(btn, toolbar) {
+        var label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = i18n.checkingForwarding || 'Checking Tamar…';
+
+        api('/forwarding-check').then(function (res) {
+            var type = res.status === 'match' ? 'success' : 'warning';
+            var items = (res.differences || []).map(function (d) {
+                return el('li', { text: d.message });
+            });
+            showForwardingNotice(toolbar, type, res.message, items);
+        }).catch(function (e) {
+            showForwardingNotice(toolbar, 'error', e.message, []);
+        }).then(function () {
+            btn.textContent = label;
+            btn.disabled = state.weekStart !== cfg.weekStart;
+        });
+    }
+
+    // One forwarding notice at a time, directly after the toolbar. Text only,
+    // never innerHTML: the messages carry names and numbers from Tamar.
+    function showForwardingNotice(toolbar, type, message, items) {
+        var old = root.querySelector('.trusted-forwarding-notice');
+        if (old) { old.parentNode.removeChild(old); }
+        if (!toolbar.parentNode) { return; } // re-rendered meanwhile
+
+        var notice = el('div', { class: 'notice notice-' + type + ' is-dismissible trusted-forwarding-notice' }, [
+            el('p', { text: message }),
+            items.length ? el('ul', { class: 'trusted-forwarding-differences' }, items) : null,
+            el('button', {
+                type: 'button', class: 'notice-dismiss',
+                onclick: function () { notice.parentNode.removeChild(notice); }
+            }, [el('span', { class: 'screen-reader-text', text: i18n.dismiss || 'Dismiss this notice.' })])
+        ]);
+
+        toolbar.parentNode.insertBefore(notice, toolbar.nextSibling);
     }
 
     // Inline panel for capturing the current week as a new template. Inserted
