@@ -16,6 +16,7 @@ use Trusted\Contracts\RotaFactoryInterface;
 use Trusted\Contracts\RotaRepositoryInterface;
 use Trusted\Factory\AssignmentFactory;
 use Trusted\Factory\RotaFactory;
+use Trusted\Http\ForwardingCheckController;
 use Trusted\Http\RestController;
 use Trusted\Http\SignupController;
 use Trusted\Repository\AssignmentRepository;
@@ -113,6 +114,10 @@ class TrustedServiceProvider
                 $c->get(RotaFactoryInterface::class),
                 $c->get(ShiftSignup::class)
             );
+        });
+
+        $container->register(ForwardingCheckController::class, static function (ContainerInterface $c): ForwardingCheckController {
+            return new ForwardingCheckController($c->get(RotaRepositoryInterface::class));
         });
 
         $container->register(SignupController::class, static function (ContainerInterface $c): SignupController {

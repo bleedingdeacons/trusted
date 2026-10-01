@@ -9,7 +9,9 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
+use Trusted\Http\ForwardingCheckController;
 use Trusted\Http\RestController;
+use Trusted\Support\Week;
 
 final class Assets
 {
@@ -38,8 +40,10 @@ final class Assets
         wp_localize_script('trusted-calendar', 'TrustedData', [
             'restRoot'  => esc_url_raw(rest_url(RestController::NAMESPACE)),
             'nonce'     => wp_create_nonce('wp_rest'),
-            'weekStart' => $this->currentMonday(),
+            'weekStart' => Week::currentMonday(),
             'startDow'  => (int) get_option('start_of_week', 1), // 0 = Sun, 1 = Mon
+            // Whether Tamar can be asked for the current week's hunt group.
+            'forwardingCheck' => ForwardingCheckController::available(),
             'i18n'      => [
                 'assign'        => __('Assign', 'trusted'),
                 'selectMember'  => __('Select Member', 'trusted'),
@@ -88,19 +92,12 @@ final class Assets
                 'invalidTime'   => __('Enter times as HH:MM, between 00:00 and 24:00.', 'trusted'),
                 'save'          => __('Save', 'trusted'),
                 'cancel'        => __('Cancel', 'trusted'),
+                'checkForwarding'     => __('Check Tamar forwarding', 'trusted'),
+                'checkingForwarding'  => __('Checking Tamar…', 'trusted'),
+                'checkForwardingHint' => __('Compare Tamar\'s hunt group for this week with the rota. Nothing in Tamar is changed.', 'trusted'),
+                'checkCurrentOnly'    => __('Only the current week\'s forwarding can be checked. Go to This week to check it.', 'trusted'),
+                'dismiss'             => __('Dismiss this notice.', 'trusted'),
             ],
         ]);
-    }
-
-    private function currentMonday(): string
-    {
-        // Anchor "this week" to the site's configured timezone (Settings →
-        // General) rather than PHP's default (UTC under WordPress). On a site
-        // running ahead of UTC, `new DateTimeImmutable('today')` can still read
-        // as the previous day, opening the calendar on the wrong week.
-        $dt  = current_datetime();
-        $dow = (int) $dt->format('N');
-
-        return $dt->modify('-' . ($dow - 1) . ' days')->format('Y-m-d');
     }
 }

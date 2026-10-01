@@ -120,6 +120,31 @@ Publishing needs Trusted's capability (`manage_options` unless filtered) and
 Tamar's `beacon_manage_forwarding`. The outcome is shown as a notice on the
 page.
 
+#### Checking the current week against Tamar
+
+When Tamar is active, the **Rota Calendar** has a **Check Tamar forwarding**
+button. It is enabled only while the current week is on screen, and it changes
+nothing in Tamar. It reads the hunt group named `Forward Week N` for the current
+week through Tamar's `tamar/find_huntgroup` filter, compares it with the week's
+rota, and shows the result as a notice under the toolbar:
+
+- **success** when every window forwards where the rota says;
+- **a warning** when there is no hunt group with that name;
+- **a warning listing each difference** when the group exists but does not
+  match: a shift Tamar has no row for, a row the rota has no shift for, a
+  different destination, or a row that is switched off;
+- **an error** when Tamar cannot be read, so an outage is never reported as a
+  missing group.
+
+Only where calls go is compared. The day, start, end and destination of each
+window must agree, and the row must be switched on. Labels, ring timeouts and
+row order are not compared. A row ticked for several days counts as one window
+a day. Any voicemail box counts as voicemail, and numbers are compared by their
+digits, with +44 read as 0
+(`Trusted\Forwarding\HuntgroupComparison`, served by
+`GET trusted/v1/forwarding-check`). It needs Trusted's capability and Tamar's
+`beacon_view_forwarding`.
+
 ### Developer Tools
 
 **Trusted → Developer** is a maintenance page for admins, with two destructive
@@ -152,8 +177,9 @@ src/
   Factory/        RotaFactory, AssignmentFactory
   Repository/     RotaRepository, AssignmentRepository   (wpdb / custom tables)
   Template/       TemplatePostType, TemplateFields (ACF), TemplateApplicator
-  Http/           RestController   (trusted/v1 REST namespace)
-  Forwarding/     RotaForwardingProjection  (a week of the rota as Beacon forwarding rules)
+  Http/           RestController, ForwardingCheckController   (trusted/v1 REST namespace)
+  Forwarding/     RotaForwardingProjection  (a week of the rota as Beacon forwarding rules),
+                  HuntgroupComparison  (those rules against a hunt group's)
   Admin/          CalendarPage, ForwardingPage, DeveloperPage, Assets
   Support/        Database (tables + dbDelta), MemberPresenter (Unity → Trusted Member)
   Plugin.php      Boots on unity/loaded; wires WordPress hooks

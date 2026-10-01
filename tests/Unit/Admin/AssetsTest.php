@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use Trusted\Admin\Assets;
 use Trusted\Admin\CalendarPage;
 use Trusted\Http\RestController;
+use Trusted\Support\Week;
 
 /*
  * Tests for the calendar screen's asset enqueuing.
@@ -24,7 +25,7 @@ use Trusted\Http\RestController;
  * would otherwise catch.
  */
 
-covers(Assets::class);
+covers(Assets::class, Week::class);
 
 const CALENDAR_HOOK = 'toplevel_page_' . CalendarPage::SLUG;
 
@@ -99,6 +100,17 @@ describe('the localised payload', function () {
         expect(localizedData()['startDow'])->toBe(0, 'startDow should be an int');
     });
 
+    // Tamar registers tamar/find_huntgroup when it is active, and only then
+    // does the calendar offer to check the week's forwarding against it.
+    it('offers the forwarding check only when Tamar can be asked', function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
+        expect(localizedData()['forwardingCheck'])->toBeFalse();
+
+        add_filter('tamar/find_huntgroup', fn () => null, 10, 2);
+        $this->assets->enqueue(CALENDAR_HOOK);
+        expect(localizedData()['forwardingCheck'])->toBeTrue();
+    });
+
     it('defaults the first day of the week to Monday', function () {
         $this->assets->enqueue(CALENDAR_HOOK);
 
@@ -141,6 +153,7 @@ describe('the localised payload', function () {
             'clearWeek', 'confirmClearWeek', 'clearAssignments', 'confirmClearAssignments',
             'delete', 'addingShift', 'memberOptional', 'newSlotStart', 'newSlotEnd',
             'newSlotLabel', 'nameRequired', 'invalidTime', 'save', 'cancel',
+            'checkForwarding', 'checkingForwarding', 'checkForwardingHint', 'checkCurrentOnly', 'dismiss',
         ]);
 
         expect($i18n)->each(
