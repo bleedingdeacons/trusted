@@ -424,22 +424,57 @@
         btn.textContent = i18n.checkingForwarding || 'Checking Tamar…';
 
         api('/forwarding-check').then(function (res) {
-            var type = res.status === 'match' ? 'success' : 'warning';
-            var items = (res.differences || []).map(function (d) {
-                return el('li', { text: d.message });
-            });
-            showForwardingNotice(toolbar, type, res.message, items);
+            showForwardingResult(toolbar, res);
         }).catch(function (e) {
-            showForwardingNotice(toolbar, 'error', e.message, []);
+            showForwardingNotice(toolbar, 'error', e.message, [], null);
         }).then(function () {
             btn.textContent = label;
             btn.disabled = state.weekStart !== cfg.weekStart;
         });
     }
 
+    // The answer of a check or a sync: success when Tamar matches the rota, a
+    // warning otherwise. When the server says a sync is possible and would
+    // change something, the warning carries a "Sync to Tamar" button.
+    function showForwardingResult(toolbar, res) {
+        var type = res.status === 'match' ? 'success' : 'warning';
+        var items = (res.differences || []).map(function (d) {
+            return el('li', { text: d.message });
+        });
+        var syncBtn = null;
+
+        if (res.can_sync) {
+            syncBtn = el('button', {
+                type: 'button',
+                class: 'button button-primary trusted-sync-forwarding',
+                text: i18n.syncForwarding || 'Sync to Tamar',
+                onclick: function () { syncForwarding(syncBtn, toolbar, res.name); }
+            });
+        }
+
+        showForwardingNotice(toolbar, type, res.message, items, syncBtn);
+    }
+
+    // Write the current week's rota into Tamar's hunt group, then show what
+    // reading it back found. This is a live change to where calls go, so it
+    // asks first.
+    function syncForwarding(btn, toolbar, name) {
+        var question = (i18n.confirmSync || 'Write this week\'s rota to Tamar as "%s"? Every row in that hunt group is replaced, and it becomes the group Tamar\'s Overview shows.').replace('%s', name);
+        if (!window.confirm(question)) { return; }
+
+        btn.disabled = true;
+        btn.textContent = i18n.syncingForwarding || 'Syncing…';
+
+        api('/forwarding-sync', { method: 'POST' }).then(function (res) {
+            showForwardingResult(toolbar, res);
+        }).catch(function (e) {
+            showForwardingNotice(toolbar, 'error', e.message, [], null);
+        });
+    }
+
     // One forwarding notice at a time, directly after the toolbar. Text only,
     // never innerHTML: the messages carry names and numbers from Tamar.
-    function showForwardingNotice(toolbar, type, message, items) {
+    function showForwardingNotice(toolbar, type, message, items, action) {
         var old = root.querySelector('.trusted-forwarding-notice');
         if (old) { old.parentNode.removeChild(old); }
         if (!toolbar.parentNode) { return; } // re-rendered meanwhile
@@ -447,6 +482,7 @@
         var notice = el('div', { class: 'notice notice-' + type + ' is-dismissible trusted-forwarding-notice' }, [
             el('p', { text: message }),
             items.length ? el('ul', { class: 'trusted-forwarding-differences' }, items) : null,
+            action ? el('p', {}, [action]) : null,
             el('button', {
                 type: 'button', class: 'notice-dismiss',
                 onclick: function () { notice.parentNode.removeChild(notice); }

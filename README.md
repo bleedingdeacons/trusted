@@ -145,6 +145,21 @@ digits, with +44 read as 0
 `GET trusted/v1/forwarding-check`). It needs Trusted's capability and Tamar's
 `beacon_view_forwarding`.
 
+#### Syncing the current week to Tamar
+
+When the check finds the group missing or different, its warning has a **Sync
+to Tamar** button. The button appears only when the week has shifts and Tamar can
+publish. After a confirmation it writes the current week's rota to `Forward Week N`
+through `tamar/publish_huntgroup`, which is the same path as the Forwarding page's
+Publish button. Tamar creates the group if need be, replaces every row, and makes
+it the group its Overview shows. The group is then read back and compared again
+(`POST trusted/v1/forwarding-sync`). Success is reported only when the read-back
+matches; a write Tamar accepted but did not apply still shows as a difference.
+Syncing needs Trusted's capability and Tamar's `beacon_manage_forwarding`.
+
+Nothing syncs on its own. Callers reach the group only once the phone number
+points at it in the Tamar panel, as with Publish.
+
 ### Developer Tools
 
 **Trusted → Developer** is a maintenance page for admins, with two destructive

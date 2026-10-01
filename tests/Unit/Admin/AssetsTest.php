@@ -154,6 +154,7 @@ describe('the localised payload', function () {
             'delete', 'addingShift', 'memberOptional', 'newSlotStart', 'newSlotEnd',
             'newSlotLabel', 'nameRequired', 'invalidTime', 'save', 'cancel',
             'checkForwarding', 'checkingForwarding', 'checkForwardingHint', 'checkCurrentOnly', 'dismiss',
+            'syncForwarding', 'syncingForwarding', 'confirmSync',
         ]);
 
         expect($i18n)->each(
@@ -170,6 +171,7 @@ describe('the localised payload', function () {
             ->weekNumber->toContain('%d')
             ->manySelected->toContain('%d')
             ->bulkSkipped->toContain('%d')
-            ->templateSaved->toContain('%s');
+            ->templateSaved->toContain('%s')
+            ->confirmSync->toContain('%s');
     });
 });
