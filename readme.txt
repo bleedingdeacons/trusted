@@ -3,8 +3,8 @@ Contributors: thebleedingdeacons
 Tags: rota, shifts, telephony, responders, scheduling
 Requires at least: 6.0
 Tested up to: 7.1.1
-Stable tag: 2.10.0
-Build date: 2026/09/27 07:47:44
+Stable tag: 2.11.0
+Build date: 2026/10/01 18:30:02
 Requires PHP: 8.4
 License: MIT (Modified)
 
