@@ -40,6 +40,8 @@ final class Assets
         wp_localize_script('trusted-calendar', 'TrustedData', [
             'restRoot'  => esc_url_raw(rest_url(RestController::NAMESPACE)),
             'nonce'     => wp_create_nonce('wp_rest'),
+            // Where calendar.js asks for a fresh nonce when this one expires.
+            'ajaxUrl'   => admin_url('admin-ajax.php'),
             'weekStart' => Week::currentMonday(),
             'startDow'  => (int) get_option('start_of_week', 1), // 0 = Sun, 1 = Mon
             // Whether Tamar can be asked for the current week's hunt group.
@@ -100,6 +102,7 @@ final class Assets
                 'syncForwarding'      => __('Sync to Tamar', 'trusted'),
                 'syncingForwarding'   => __('Syncing…', 'trusted'),
                 /* translators: %s: hunt group name, e.g. "Forward Week 40". */
+                'sessionExpired'      => __('Your WordPress session has expired. Reload the page and log in again.', 'trusted'),
                 'confirmSync'         => __('Write this week\'s rota to Tamar as "%s"? Every row in that hunt group is replaced, and it becomes the group Tamar\'s Overview shows.', 'trusted'),
             ],
         ]);

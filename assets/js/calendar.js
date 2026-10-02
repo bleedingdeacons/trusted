@@ -49,23 +49,55 @@
 
     // --- REST helpers -------------------------------------------------------
 
-    function api(path, options) {
+    // The REST nonce is handed over once, when the page loads, and WordPress
+    // stops accepting it after 12–24 hours, or as soon as the logged-in user
+    // changes (User Switching, View Admin As). Either way every request then
+    // fails with rest_cookie_invalid_nonce, "Cookie check failed". The
+    // calendar is a page people leave open, so on that error it asks
+    // WordPress for a fresh nonce (core's rest-nonce AJAX action) and retries
+    // once. Retrying is safe even for a write: WordPress rejects the nonce
+    // before the request reaches Trusted, so the first attempt did nothing.
+    function api(path, options, retried) {
         options = options || {};
-        options.headers = Object.assign({
-            'Content-Type': 'application/json',
-            'X-WP-Nonce': cfg.nonce
-        }, options.headers || {});
-        if (options.body && typeof options.body !== 'string') {
-            options.body = JSON.stringify(options.body);
-        }
-        return fetch(cfg.restRoot + path, options).then(function (res) {
+        var body = options.body && typeof options.body !== 'string'
+            ? JSON.stringify(options.body)
+            : options.body;
+        var request = Object.assign({}, options, {
+            body: body,
+            headers: Object.assign({
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': cfg.nonce
+            }, options.headers || {})
+        });
+
+        return fetch(cfg.restRoot + path, request).then(function (res) {
             if (!res.ok) {
                 return res.json().catch(function () { return {}; }).then(function (err) {
+                    if (!retried && res.status === 403 && err.code === 'rest_cookie_invalid_nonce') {
+                        return refreshNonce().then(function () {
+                            return api(path, options, true);
+                        });
+                    }
                     throw new Error(err.message || ('Request failed (' + res.status + ')'));
                 });
             }
             return res.status === 204 ? null : res.json();
         });
+    }
+
+    // A fresh REST nonce for whoever is logged in now. Logged out, WordPress
+    // answers "0" rather than a nonce, and that is reported rather than
+    // retried with.
+    function refreshNonce() {
+        return fetch(cfg.ajaxUrl + '?action=rest-nonce', { credentials: 'same-origin' })
+            .then(function (res) { return res.ok ? res.text() : ''; })
+            .then(function (nonce) {
+                nonce = (nonce || '').trim();
+                if (!/^[a-f0-9]{10}$/.test(nonce)) {
+                    throw new Error(i18n.sessionExpired || 'Your WordPress session has expired. Reload the page and log in again.');
+                }
+                cfg.nonce = nonce;
+            });
     }
 
     // --- Date helpers -------------------------------------------------------
