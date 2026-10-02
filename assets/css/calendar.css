@@ -112,9 +112,8 @@
     margin: 0;
 }
 
-/* Week-level actions stacked vertically: Save week as template, Assign
-   members, then (with Tamar active) Check Tamar forwarding — each on its own
-   line. */
+/* Week-level actions stacked vertically: Save week as template, then Assign
+   members — each on its own line. */
 .trusted-week-actions {
     display: flex;
     flex-direction: column;
@@ -128,7 +127,7 @@
     text-align: center;
 }
 
-/* The outcome of Check Tamar forwarding: one line per difference. */
+/* The outcome of Check call forwarding: one line per difference. */
 .trusted-forwarding-differences {
     list-style: disc;
     margin: 0 0 8px 20px;

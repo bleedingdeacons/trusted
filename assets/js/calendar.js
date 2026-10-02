@@ -343,15 +343,16 @@
         var toolbar;
 
         // Compare Tamar's hunt group for the current week with the rota. Read
-        // only — nothing is sent to Tamar. Shown only when Tamar is active,
-        // and enabled only while the current week is on screen, since that is
-        // the week the server checks.
+        // only — nothing is sent to Tamar. Shown only when Tamar is active and
+        // outside bulk mode, like the other week actions, and enabled only
+        // while the current week is on screen, since that is the week the
+        // server checks.
         var checkBtn = null;
-        if (cfg.forwardingCheck) {
+        if (cfg.forwardingCheck && !state.bulk) {
             var isCurrentWeek = state.weekStart === cfg.weekStart;
             checkBtn = el('button', {
                 class: 'button trusted-check-forwarding',
-                text: i18n.checkForwarding || 'Check Tamar forwarding',
+                text: i18n.checkForwarding || 'Check call forwarding',
                 title: isCurrentWeek
                     ? (i18n.checkForwardingHint || 'Compare Tamar\'s hunt group for this week with the rota. Nothing in Tamar is changed.')
                     : (i18n.checkCurrentOnly || 'Only the current week\'s forwarding can be checked. Go to This week to check it.'),
@@ -403,14 +404,18 @@
 
         toolbar = el('div', { class: 'trusted-toolbar' }, [
             // Section 1: week navigation — the week label sits above the
-            // Previous / This week / Next buttons.
+            // Previous / This week / Next buttons, and (with Tamar active)
+            // Check call forwarding sits below them.
             el('div', { class: 'trusted-nav' }, [
                 el('strong', { class: 'trusted-week-label', text: label }),
                 el('div', { class: 'trusted-week-buttons' }, [
                     el('button', { class: 'button', text: i18n.prevWeek || '← Previous', onclick: function () { state.weekStart = addDays(state.weekStart, -7); render(); } }),
                     el('button', { class: 'button', text: i18n.today || 'This week', onclick: function () { state.weekStart = cfg.weekStart; render(); } }),
                     el('button', { class: 'button', text: i18n.nextWeek || 'Next →', onclick: function () { state.weekStart = addDays(state.weekStart, 7); render(); } })
-                ])
+                ]),
+                // Under the week buttons, since whether it is enabled
+                // depends on which week they have navigated to.
+                checkBtn
             ]),
             // Section 2: actions — refresh, the bulk-assign / save-as-template
             // entry points (both hidden while already in bulk mode; the bulk
@@ -421,8 +426,7 @@
                 // Assign members. Both hidden while already in bulk mode.
                 state.bulk ? null : el('div', { class: 'trusted-week-actions' }, [
                     saveTemplateBtn,
-                    bulkBtn,
-                    checkBtn
+                    bulkBtn
                 ]),
                 // Apply-a-template controls: the dropdown on top, then the Apply
                 // button with the Replace toggle alongside it.

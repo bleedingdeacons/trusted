@@ -21,7 +21,7 @@ use WP_Error;
 use WP_REST_Response;
 
 /*
- * The Rota Calendar's "Check Tamar forwarding": the current week's rota
+ * The Rota Calendar's "Check call forwarding": the current week's rota
  * against Tamar's hunt group for it, read through tamar/find_huntgroup.
  *
  * Tamar registers the filter when it is active; Brain Monkey records the

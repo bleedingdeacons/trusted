@@ -122,7 +122,7 @@ page.
 
 #### Checking the current week against Tamar
 
-When Tamar is active, the **Rota Calendar** has a **Check Tamar forwarding**
+When Tamar is active, the **Rota Calendar** has a **Check call forwarding**
 button. It is enabled only while the current week is on screen, and it changes
 nothing in Tamar. It reads the hunt group named `Forward Week N` for the current
 week through Tamar's `tamar/find_huntgroup` filter, compares it with the week's

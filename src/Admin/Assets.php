@@ -94,7 +94,7 @@ final class Assets
                 'invalidTime'   => __('Enter times as HH:MM, between 00:00 and 24:00.', 'trusted'),
                 'save'          => __('Save', 'trusted'),
                 'cancel'        => __('Cancel', 'trusted'),
-                'checkForwarding'     => __('Check Tamar forwarding', 'trusted'),
+                'checkForwarding'     => __('Check call forwarding', 'trusted'),
                 'checkingForwarding'  => __('Checking Tamar…', 'trusted'),
                 'checkForwardingHint' => __('Compare Tamar\'s hunt group for this week with the rota. Nothing in Tamar is changed.', 'trusted'),
                 'checkCurrentOnly'    => __('Only the current week\'s forwarding can be checked. Go to This week to check it.', 'trusted'),
