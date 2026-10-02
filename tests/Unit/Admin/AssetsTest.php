@@ -90,6 +90,14 @@ describe('the localised payload', function () {
             ->nonce->toBe('nonce-wp_rest', 'the REST nonce action must be wp_rest');
     });
 
+    // An open calendar outlives its nonce; calendar.js fetches a fresh one
+    // from core's rest-nonce AJAX action, so it needs admin-ajax.php's URL.
+    it('tells the script where to refresh an expired nonce', function () {
+        $this->assets->enqueue(CALENDAR_HOOK);
+
+        expect(localizedData()['ajaxUrl'])->toEndWith('admin-ajax.php');
+    });
+
     // The calendar renders Monday-first or Sunday-first from the site's own
     // Settings → General value, defaulting to Monday when it is unset.
     it('takes the first day of the week from the site setting', function () {
@@ -154,7 +162,7 @@ describe('the localised payload', function () {
             'delete', 'addingShift', 'memberOptional', 'newSlotStart', 'newSlotEnd',
             'newSlotLabel', 'nameRequired', 'invalidTime', 'save', 'cancel',
             'checkForwarding', 'checkingForwarding', 'checkForwardingHint', 'checkCurrentOnly', 'dismiss',
-            'syncForwarding', 'syncingForwarding', 'confirmSync',
+            'syncForwarding', 'syncingForwarding', 'sessionExpired', 'confirmSync',
         ]);
 
         expect($i18n)->each(
