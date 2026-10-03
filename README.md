@@ -107,9 +107,10 @@ filter, and Tamar then:
 
 - creates a hunt group called `Forward Week N` in the control panel, or reuses
   one that already has that name, so publishing a week twice overwrites it;
-- replaces every row in it with the week's rules, taking the greeting,
-  voicemail box, hunting strategy and ring timeout from the hunt group it was
-  showing before;
+- replaces every row in it with the week's rules, and gives it the ring
+  timeout, announcement, voicemail box and hunting type set under **Tamar →
+  Settings → Hunt group settings** (from Tamar 1.9.0; by default 90 seconds,
+  none, Voice to Email and hunt in-order);
 - makes it the hunt group Tamar's Overview shows.
 
 Calls do not reach the new group until the phone number is pointed at it in
