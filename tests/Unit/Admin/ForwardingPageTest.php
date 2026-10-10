@@ -170,23 +170,26 @@ describe('the call flow', function () {
             ->and($html)->not->toContain('Monday 20 July');
     });
 
-    it('draws an assigned shift as an active step forwarding to the responder', function () {
+    it('draws an assigned shift as an active row forwarding to the responder', function () {
         ($this->weekOf)('2026-07-20', [forwardingSlot('2026-07-22', '10:00', '24:00', 'Steve C')]);
 
         $html = ($this->render)();
 
         expect($html)->toContain(
             'Wednesday 22 July',
-            '10:00–23:59',
-            '<strong>Steve C</strong>',
-            'Active',
-            '07700 900123',
+            '<th class="trusted-flow__time">Start time</th>',
+            '<th>Responder</th>',
+            '<th>Divert calls to</th>',
+            '<td class="trusted-flow__time">10:00</td><td class="trusted-flow__time">23:59</td><td><strong>Steve C</strong></td>',
+            '<span class="trusted-target__addr">07700 900123</span>',
+            '<span class="trusted-badge trusted-badge--on">Active</span>',
             '1 forwarding step',
             'Forwarded to',
-        )->and(substr_count($html, 'Nothing forwarded on this day.'))->toBe(6);
+        )->and(substr_count($html, '<table class="trusted-flow">'))->toBe(1)
+            ->and(substr_count($html, 'Nothing forwarded on this day.'))->toBe(6);
     });
 
-    it('draws an unfilled shift as a voicemail step, with the reason, in its place', function () {
+    it('draws an unfilled shift as a voicemail row, with the reason, in its place', function () {
         ($this->weekOf)('2026-07-20', [
             forwardingSlot('2026-07-20', '14:00', '18:00', 'Late', id: 2),
             forwardingSlot('2026-07-20', '09:00', '12:00', null, id: 1),
@@ -207,9 +210,13 @@ describe('the call flow', function () {
             'Voicemail <span>(1)</span>',
         );
 
-        // In time order within the day, whichever kind of step each is.
-        expect(strpos($html, '09:00–12:00'))->toBeLessThan(strpos($html, '12:00–14:00'))
-            ->and(strpos($html, '12:00–14:00'))->toBeLessThan(strpos($html, '14:00–18:00'));
+        expect(substr_count($html, '<tr class="trusted-step trusted-step--gap">'))->toBe(2);
+
+        // In time order within the day, whichever kind of row each is.
+        expect(strpos($html, '<td class="trusted-flow__time">09:00</td>'))
+            ->toBeLessThan(strpos($html, '<td class="trusted-flow__time">12:00</td><td class="trusted-flow__time">14:00</td>'))
+            ->and(strpos($html, '<td class="trusted-flow__time">12:00</td><td class="trusted-flow__time">14:00</td>'))
+            ->toBeLessThan(strpos($html, '<td class="trusted-flow__time">14:00</td><td class="trusted-flow__time">18:00</td>'));
     });
 
     it('draws an overnight shift across both days, to the same person', function () {
@@ -217,10 +224,14 @@ describe('the call flow', function () {
 
         $html = ($this->render)();
 
-        expect($html)->toContain('22:00–23:59', '00:00–06:00', '2 forwarding steps')
-            ->and(substr_count($html, '<li class="trusted-step">'))->toBe(2)
+        $late  = '<td class="trusted-flow__time">22:00</td><td class="trusted-flow__time">23:59</td>';
+        $early = '<td class="trusted-flow__time">00:00</td><td class="trusted-flow__time">06:00</td>';
+
+        expect($html)->toContain($late, $early, '2 forwarding steps')
+            ->and(substr_count($html, '<tr class="trusted-step">'))->toBe(2)
+            ->and(substr_count($html, '<table class="trusted-flow">'))->toBe(2)
             ->and($html)->not->toContain('Unfilled')
-            ->and(strpos($html, '00:00–06:00'))->toBeLessThan(strpos($html, 'Sunday 26 July'));
+            ->and(strpos($html, $early))->toBeLessThan(strpos($html, 'Sunday 26 July'));
     });
 });
 
