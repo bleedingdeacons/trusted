@@ -17,16 +17,17 @@ use Trusted\Forwarding\RotaForwardingProjection;
 /**
  * Read-only call-flow view of a week's rota as a hunt group.
  *
- * Deliberately drawn like Tamar's forwarding overview (Tamar\Admin\
- * ForwardingOverview) — each day's forwarding steps in time order, the week
- * starting Monday, then the targets they forward to grouped by kind — so a
+ * One table per day, the week starting Monday, each day's forwarding steps
+ * in time order — start, end, who, where the calls go, and whether the
+ * shift is filled — then the targets they forward to grouped by kind. The
+ * table is styled like Tamar's own (Tamar\Admin\ForwardingOverview), so a
  * coordinator can hold the two side by side and see what the rota would put
- * into the hunt group. The markup and styles are a copy rather than a
- * dependency: Tamar is optional, and this screen has to work without it.
+ * into the hunt group. The styles are a copy rather than a dependency: Tamar
+ * is optional, and this screen has to work without it.
  *
  * Where it departs from Tamar's view is the shifts that fall to voicemail.
  * To Tamar a voicemail row is just a row; the rota knows why it is there —
- * nobody assigned, or someone who cannot be reached — and those steps are
+ * nobody assigned, or someone who cannot be reached — and those rows are
  * drawn as warnings with the reason, because an unfilled shift is the thing a
  * coordinator most needs to see.
  *
@@ -150,43 +151,48 @@ final class ForwardingPreview
             return;
         }
 
-        echo '<ol class="trusted-flow">';
+        echo '<div class="trusted-flow-wrap"><table class="trusted-flow">';
+        echo '<thead><tr>'
+            . '<th class="trusted-flow__time">' . esc_html__('Start time', 'trusted') . '</th>'
+            . '<th class="trusted-flow__time">' . esc_html__('End time', 'trusted') . '</th>'
+            . '<th>' . esc_html__('Responder', 'trusted') . '</th>'
+            . '<th>' . esc_html__('Divert calls to', 'trusted') . '</th>'
+            . '<th>' . esc_html__('Status', 'trusted') . '</th>'
+            . '</tr></thead><tbody>';
         foreach ($rules as $rule) {
             $this->renderStep($rule, $targetsById[$rule->getTargetId()] ?? null, $schedule->unfilledFor($rule));
         }
-        echo '</ol>';
+        echo '</tbody></table></div>';
         echo '</section>';
     }
 
     /**
+     * One row of a day's table.
+     *
      * @param UnfilledShift|null $unfilled Why the rule forwards to voicemail,
      *                                     or null when it forwards to a person.
      */
     private function renderStep(ForwardingRule $rule, ?ForwardingTarget $target, ?array $unfilled): void
     {
         $label = $rule->getLabel() !== '' ? $rule->getLabel() : __('(unnamed rule)', 'trusted');
+        $value = $this->windowValue($rule);
 
-        echo '<li class="trusted-step' . ($unfilled !== null ? ' trusted-step--gap' : '') . '">';
-        echo '<span class="trusted-step__time">' . esc_html($this->describeWindow($rule)) . '</span>';
-        echo '<div class="trusted-step__body">';
+        echo '<tr class="trusted-step' . ($unfilled !== null ? ' trusted-step--gap' : '') . '">';
+        echo '<td class="trusted-flow__time">' . esc_html((string) ($value['from'] ?? '00:00')) . '</td>';
+        echo '<td class="trusted-flow__time">' . esc_html((string) ($value['to'] ?? '23:59')) . '</td>';
+        echo '<td><strong>' . esc_html($label) . '</strong></td>';
+        echo '<td>' . $this->describeTarget($rule->getTargetId(), $target) . '</td>';
 
-        echo '<div class="trusted-step__head">';
-        echo '<strong>' . esc_html($label) . '</strong>';
-        echo $unfilled !== null
-            ? '<span class="trusted-badge trusted-badge--warn">' . esc_html__('Unfilled', 'trusted') . '</span>'
-            : '<span class="trusted-badge trusted-badge--on">' . esc_html__('Active', 'trusted') . '</span>';
-        echo '</div>';
-
-        echo '<div class="trusted-step__dest"><span class="dashicons dashicons-arrow-right-alt2"></span> '
-            . $this->describeTarget($rule->getTargetId(), $target)
-            . '</div>';
-
+        echo '<td>';
         if ($unfilled !== null) {
-            echo '<div class="trusted-step__when"><span class="dashicons dashicons-warning"></span> '
-                . esc_html($this->describeReason($unfilled['reason'], $unfilled['member'])) . '</div>';
+            echo '<span class="trusted-badge trusted-badge--warn">' . esc_html__('Unfilled', 'trusted') . '</span>'
+                . '<div class="trusted-step__why">' . esc_html($this->describeReason($unfilled['reason'], $unfilled['member'])) . '</div>';
+        } else {
+            echo '<span class="trusted-badge trusted-badge--on">' . esc_html__('Active', 'trusted') . '</span>';
         }
+        echo '</td>';
 
-        echo '</div></li>';
+        echo '</tr>';
     }
 
     private function describeReason(string $reason, string $member): string
@@ -214,30 +220,15 @@ final class ForwardingPreview
                 . esc_html($targetId) . '</code></span>';
         }
 
-        $icon  = $target->getKind() === ForwardingTarget::KIND_VOICEMAIL ? 'dashicons-microphone' : 'dashicons-phone';
-        $label = $target->getLabel() !== '' ? $target->getLabel() : $target->getId();
+        // The responder has a column of its own, so a number shows as just
+        // the number; voicemail has no number, so it shows by name.
+        $voicemail = $target->getKind() === ForwardingTarget::KIND_VOICEMAIL;
+        $icon      = $voicemail ? 'dashicons-microphone' : 'dashicons-phone';
+        $text      = ! $voicemail && $target->getAddress() !== ''
+            ? '<span class="trusted-target__addr">' . esc_html($target->getAddress()) . '</span>'
+            : esc_html($target->getLabel() !== '' ? $target->getLabel() : $target->getId());
 
-        $out = '<span class="trusted-target">';
-        $out .= '<span class="dashicons ' . esc_attr($icon) . '"></span> ';
-        $out .= '<strong>' . esc_html($label) . '</strong>';
-        if ($target->getAddress() !== '') {
-            $out .= ' <span class="trusted-target__addr">' . esc_html($target->getAddress()) . '</span>';
-        }
-        $out .= ' <span class="trusted-target__kind">' . esc_html($target->getKind()) . '</span>';
-        $out .= '</span>';
-
-        return $out;
-    }
-
-    /**
-     * A rule's time of day as the forwarding system holds it, e.g.
-     * "10:00–14:00" or "18:00–23:59".
-     */
-    private function describeWindow(ForwardingRule $rule): string
-    {
-        $value = $this->windowValue($rule);
-
-        return sprintf('%s–%s', (string) ($value['from'] ?? '00:00'), (string) ($value['to'] ?? '23:59'));
+        return '<span class="trusted-target"><span class="dashicons ' . esc_attr($icon) . '"></span> ' . $text . '</span>';
     }
 
     /** Sort key for a rule: HH:MM compares correctly as a string. */
@@ -347,20 +338,19 @@ final class ForwardingPreview
 .trusted-forwarding__day-head span{color:#8c8f94;font-weight:400;}
 .trusted-forwarding__day-empty{color:#646970;font-style:italic;margin:0;padding:.6em 1em;border:1px dashed #dcdcde;border-radius:8px;}
 .trusted-forwarding__empty{color:#646970;}
-.trusted-flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
-.trusted-step{display:flex;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:.85em 1em;}
-.trusted-step--gap{background:#fcf9e8;border-color:#f0c33c;}
-.trusted-step__time{flex:0 0 96px;font-family:Consolas,Monaco,monospace;font-size:13px;font-weight:600;color:#1d2327;padding-top:2px;}
-.trusted-step__body{flex:1;min-width:0;}
-.trusted-step__head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.trusted-step__head strong{font-size:15px;}
-.trusted-step__dest{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:14px;margin-bottom:4px;}
-.trusted-step__when{display:flex;align-items:center;gap:5px;color:#646970;font-size:13px;}
+.trusted-flow-wrap{overflow-x:auto;background:#fff;border:1px solid #d9dbe6;border-radius:10px;}
+.trusted-flow{border-collapse:collapse;width:100%;font-size:14px;}
+.trusted-flow th{font-weight:700;text-align:left;vertical-align:bottom;padding:8px 12px;border-bottom:1px solid #dee2e6;white-space:nowrap;}
+.trusted-flow td{padding:8px 12px;border-bottom:1px solid #dee2e6;vertical-align:top;}
+.trusted-flow tbody tr:last-child td{border-bottom:0;}
+.trusted-flow__time{width:80px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+td.trusted-flow__time{font-family:Consolas,Monaco,monospace;font-weight:600;color:#1d2327;}
+.trusted-step--gap td{background:#fcf9e8;}
+.trusted-step__why{color:#646970;font-size:13px;margin-top:4px;}
 .trusted-step .dashicons{color:#646970;width:18px;height:18px;font-size:18px;}
-.trusted-step--gap .trusted-step__when .dashicons{color:#996800;}
-.trusted-target{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;}
-.trusted-target__addr{font-family:Consolas,Monaco,monospace;font-size:12px;color:#646970;}
-.trusted-target__kind{font-size:11px;padding:1px 7px;border-radius:999px;background:#f0f0f1;color:#646970;}
+.trusted-step--gap .dashicons-microphone{color:#996800;}
+.trusted-target{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.trusted-target__addr{font-family:Consolas,Monaco,monospace;font-size:13px;}
 .trusted-target--unknown code{font-size:12px;}
 .trusted-badge{font-size:11px;padding:2px 8px;border-radius:999px;}
 .trusted-badge--on{background:#edfaef;color:#0a7d33;}
@@ -371,7 +361,6 @@ final class ForwardingPreview
 .trusted-targets__kind span{color:#8c8f94;}
 .trusted-targets__group ul{margin:0;padding:0;list-style:none;}
 .trusted-targets__group li{padding:3px 0;font-size:14px;}
-@media (max-width:600px){.trusted-step{flex-direction:column;gap:4px;}.trusted-step__time{flex:none;}}
 </style>';
     }
 }

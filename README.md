@@ -77,8 +77,10 @@ A 7-day telephone shift **rota manager** for WordPress.
 ### Forwarding preview
 
 **Telephone → Forwarding** shows a week of the rota as the call-forwarding hunt
-group it would make, laid out like Tamar's forwarding overview: each day's
-forwarding steps in time order, Monday first, then the numbers they forward to.
+group it would make: a table per day, Monday first, each listing that day's
+forwarding steps in time order — start, end, responder, the number calls divert
+to, and whether the shift is filled — styled like Tamar's overview, then the
+numbers they forward to.
 
 - Each shift is a step on its weekday. A filled shift forwards to the
   responder's telephone. Steps are numbered through the week, earliest first,
